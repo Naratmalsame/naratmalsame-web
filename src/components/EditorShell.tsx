@@ -12,7 +12,10 @@ import { HorizontalRulePlugin } from "@lexical/react/LexicalHorizontalRulePlugin
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
 import AdvancedToolbar from "./AdvancedToolbar";
 import AutoLinkPlugin from "./AutoLinkPlugin";
-import type { InitialConfigType, EditorState } from "lexical";
+import ForeignWordPlugin from "../plugins/ForeignWordPlugin";
+import ForeignWordSidebar from "./ForeignWordSidebar";
+import type { EditorState } from "lexical";
+import type { InitialConfigType } from "@lexical/react/LexicalComposer";
 
 export default function EditorShell({
   initialConfig,
@@ -20,7 +23,7 @@ export default function EditorShell({
 }: {
   initialConfig: InitialConfigType;
   onChange: (editorState: EditorState) => void;
-}): JSX.Element {
+}): React.ReactElement {
   return (
     <LexicalComposer initialConfig={initialConfig}>
       <div className="editor-wrapper">
@@ -43,7 +46,10 @@ export default function EditorShell({
           <TablePlugin />
           <HorizontalRulePlugin />
           <TabIndentationPlugin />
+          <ForeignWordPlugin />
         </div>
+        {/* 오른쪽 사이드바: 외래어 목록 및 교체 UI */}
+        <ForeignWordSidebar />
       </div>
     </LexicalComposer>
   );
