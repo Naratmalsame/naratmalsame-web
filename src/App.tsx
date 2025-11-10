@@ -5,14 +5,6 @@ import EditorShell from "./components/EditorShell";
 import PreviewComponent from "./components/Preview";
 import * as S from "./styles/AppStyles";
 
-/* 기존에 App.tsx에 인라인 정의되어 있던 AdvancedToolbar / AutoLinkPlugin / 스타일 블록을 제거했습니다.
-   툴바 등은 이미 분리된 컴포넌트들을 사용합니다:
-   - AdvancedToolbar: src/components/AdvancedToolbar.tsx
-   - AutoLinkPlugin: src/components/AutoLinkPlugin.tsx
-   - EditorShell: src/components/EditorShell.tsx
-   - PreviewComponent: src/components/Preview.tsx
-*/
-
 /**
  * 아래에서 사용하는 Lexical 노드들을 명시적으로 import 합니다.
  * (워크스페이스에 해당 패키지들이 설치되어 있어야 합니다.)
@@ -209,17 +201,22 @@ export default function App() {
       {/* 전역 포커스 리셋을 앱 루트에 렌더하여 에디터 내부의 파란 포커스 링을 제거 */}
       <S.EditorFocusReset />
       <S.AppHeader>
-        <h1>Lexical Editor 실험 현장</h1>
-        <p>Lexical Editor에서 사용하고 싶은 모든걸 사용하는 중</p>
+        <h1>나랏말싸미 - 인공지능의 발전과 사회적 영향</h1>
+        <p>Lexical Editor 문서 작성</p>
       </S.AppHeader>
 
-      <S.EditorWrapper>
-        {/* EditorShell은 [src/components/EditorShell.tsx]에서 LexicalComposer와 툴바/플러그인을 구성합니다. */}
-        <EditorShell initialConfig={initialConfig} onChange={onChange} />
+      <S.EditorLayout>
+        <S.EditorWrapper>
+          {/* EditorShell은 [src/components/EditorShell.tsx]에서 LexicalComposer와 툴바/플러그인을 구성합니다. */}
+          <EditorShell initialConfig={initialConfig} onChange={onChange} />
 
-        {/* URL/미리보기 출력 영역 */}
-        <PreviewComponent preview={preview} lastDetectedUrl={lastDetectedUrl} />
-      </S.EditorWrapper>
+          {/* URL/미리보기 출력 영역 */}
+          <PreviewComponent
+            preview={preview}
+            lastDetectedUrl={lastDetectedUrl}
+          />
+        </S.EditorWrapper>
+      </S.EditorLayout>
     </S.AppContainer>
   );
 }
