@@ -8,7 +8,7 @@ export default function PreviewComponent({
 }: {
   preview: Preview;
   lastDetectedUrl: string | null;
-}): JSX.Element | null {
+}): React.ReactElement | null {
   if (!preview && !lastDetectedUrl) return null;
 
   if (preview) {
