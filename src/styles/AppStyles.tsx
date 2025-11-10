@@ -1,214 +1,376 @@
 import styled, { createGlobalStyle } from "styled-components";
 
-/**
- * App 전반 레이아웃 및 에디터 관련 스타일을 styled-components로 옮겼습니다.
- * 기존 클래스 네임(.toolbar, .toolbar-section 등)을 그대로 남겨
- * 기존 컴포넌트(예: src/components/AdvancedToolbar.tsx)와 호환됩니다.
- */
-
 export const AppContainer = styled.div`
   width: 100vw;
   height: 100vh;
-  background: black;
-  padding: 20px;
-  box-sizing: border-box;
+  background: #f8f8f8;
+  display: flex;
+  flex-direction: column;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
     Ubuntu, Cantarell, sans-serif;
 `;
 
 export const AppHeader = styled.header`
-  text-align: center;
-  color: white;
-  margin-bottom: 20px;
+  background: white;
+  border-bottom: 1px solid #e9ecef;
+  padding: 16px 24px;
 
   h1 {
-    margin: 0 0 10px 0;
-    font-size: 2.5em;
-    font-weight: 700;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #212529;
+    text-align: center;
   }
 
   p {
-    margin: 0;
-    opacity: 0.9;
-    font-size: 1.1em;
+    display: none;
   }
 `;
 
-/* 에디터 래퍼 (기존 .editor-wrapper 대체) */
-export const EditorWrapper = styled.div`
-  max-width: 1200px;
-  min-height: 1200px;
-  margin: 0 auto;
-  background: white;
-  color: #212529;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+export const EditorLayout = styled.div`
+  display: flex;
+  flex: 1;
   overflow: hidden;
+  background: #f8f8f8;
+`;
 
-  /* 기존 .toolbar 관련 클래스는 AdvancedToolbar에서 사용하므로 하위 선택자로 유지 */
-  .toolbar {
+export const LeftSidebar = styled.aside`
+  width: 280px;
+  background: white;
+  border-right: 1px solid #e9ecef;
+  overflow-y: auto;
+
+  .sidebar-section {
+    padding: 16px;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+    margin: 0 0 12px 0;
     display: flex;
-    gap: 4px;
-    padding: 12px;
-    background: #f8f9fa;
-    border-bottom: 2px solid #e9ecef;
-    flex-wrap: wrap;
     align-items: center;
+    gap: 8px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: #667eea;
+    color: white;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+`;
+
+export const WordItem = styled.div<{ $isSelected?: boolean }>`
+  padding: 12px;
+  border: 1px solid ${(props) => (props.$isSelected ? "#667eea" : "#e9ecef")};
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: ${(props) =>
+    props.$isSelected ? "rgba(102, 126, 234, 0.04)" : "white"};
+
+  &:hover {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.02);
+  }
+
+  .word-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: ${(props) => (props.$isSelected ? "8px" : "0")};
+  }
+
+  .word-text {
+    font-weight: 600;
+    color: #212529;
+    font-size: 14px;
+  }
+
+  .word-arrow {
+    color: #6c757d;
+    font-size: 12px;
+  }
+
+  .word-replacement {
+    color: #667eea;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .word-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e9ecef;
+  }
+
+  .action-button {
+    flex: 1;
+    padding: 6px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    background: white;
+    color: #495057;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #f8f9fa;
+      border-color: #adb5bd;
+    }
+
+    &.primary {
+      background: #05a569;
+      color: white;
+      border-color: #05a569;
+
+      &:hover {
+        background: #048a57;
+      }
+    }
+  }
+`;
+
+export const EditorWrapper = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f8f8f8;
+  overflow: hidden;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+`;
+
+export const Toolbar = styled.div`
+  display: flex;
+  width: 100%;
+  gap: 6px;
+  padding: 10px 16px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
   }
 
   .toolbar-section {
     display: flex;
     gap: 4px;
+    flex-shrink: 0;
   }
 
   .toolbar-divider {
     width: 1px;
-    height: 24px;
-    background: #dee2e6;
-    margin: 0 8px;
+    height: 20px;
+    background: #d1d5db;
+    margin: 0 6px;
+    flex-shrink: 0;
   }
 
-  .toolbar button {
+  .toolbar-dropdown {
+    min-width: 90px;
+    height: 36px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 6px;
     background: white;
-    border: 1px solid #dee2e6;
+    color: #1f2937;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.15s;
+    flex-shrink: 0;
+
+    &:hover {
+      background: #f3f4f6;
+    }
+
+    &:focus {
+      background: #e5e7eb;
+    }
+  }
+
+  button {
+    background: white;
+    border: none;
     border-radius: 6px;
     padding: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
-    color: #495057;
-  }
+    transition: all 0.15s;
+    color: #1f2937;
+    font-size: 18px;
+    min-width: 36px;
+    height: 36px;
+    font-weight: 600;
+    flex-shrink: 0;
 
-  .toolbar button:hover {
-    background: #e9ecef;
-    border-color: #adb5bd;
-    transform: translateY(-1px);
-  }
+    &:hover {
+      background: #f3f4f6;
+    }
 
-  .toolbar button:active {
-    transform: translateY(0);
-  }
+    &:active {
+      background: #e5e7eb;
+      transform: scale(0.97);
+    }
 
-  .toolbar button.active {
-    background: #667eea;
-    color: white;
-    border-color: #667eea;
+    &.active {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+
+    strong {
+      font-style: normal;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        sans-serif;
+    }
+
+    em {
+      font-style: italic;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    u {
+      text-decoration: underline;
+      font-size: 16px;
+      font-weight: 600;
+      font-style: normal;
+    }
+
+    span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
   }
 `;
 
-/* 에디터 컨테이너(기존 .editor-container) */
 export const EditorContainer = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
   position: relative;
-  background: white;
-  /* 에디터 내부 텍스트가 흰색으로 표시되어 보이지 않는 문제를 방지하기 위한 기본 색상 지정 */
-  color: #212529;
-  /* 초기 에디터 높이를 늘려 채팅/글 작성 영역을 더 크게 보이게 함 */
-  min-height: 700px;
+  background: #f8f8f8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
-  /* 문서(document) 느낌 스타일: 중앙폭 고정, serif 계열 폰트, 넉넉한 여백 */
   .editor-input {
-    /* 에디터 입력(채팅 쓰는 영역) 초기 높이 증가 */
-    min-height: 700px;
-    max-width: 760px; /* 용지 폭 */
-    margin: 0 auto; /* 중앙 정렬 */
-    padding: 48px 56px; /* 문서 여백 */
-    font-size: 17px;
-    line-height: 1.9;
-    color: #111827; /* 문서 텍스트 색상 */
-    font-family: Georgia, "Times New Roman", Times, serif; /* 문서 느낌의 serif 폰트 */
-    background: transparent; /* 배경은 wrapper의 종이 느낌으로 유지 */
-    outline: none; /* 기본 포커스 테두리 제거 */
-    -webkit-tap-highlight-color: transparent;
-    -webkit-user-modify: read-write-plaintext-only;
-  }
+    min-height: 100%;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0;
+    margin-top: 60px;
+    padding: 48px 80px;
+    font-size: 16px;
+    line-height: 1.7;
+    color: #212529;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+      Ubuntu, Cantarell, sans-serif;
+    outline: none;
+    background: white;
+    flex: 1;
+    box-sizing: border-box;
 
-  /* 포커스 시 브라우저의 기본 블루 포커스/outline, box-shadow 등을 완전히 제거하여 파란 테두리 제거 */
-  /* 넓은 범위(입력 요소 및 래퍼)에 포커스 스타일 제거: 일부 브라우저는 wrapper나 contentEditable 요소에 포커스 링을 그림 */
-  .editor-input:focus,
-  .editor-input:focus-visible,
-  .editor-input[contenteditable="true"]:focus,
-  #lexical-editor:focus,
-  .editor-container:focus,
-  .editor-wrapper:focus {
-    outline: none !important;
-    box-shadow: none !important;
-    -webkit-box-shadow: none !important;
-    border-color: transparent !important;
-  }
-
-  /* 포커스가 래퍼 내부 어디에 있든지 파란 테두리(포커스 링)를 완전 제거합니다. */
-  .editor-wrapper:focus-within,
-  .editor-container:focus-within,
-  .editor-wrapper:focus,
-  .editor-container:focus,
-  .editor-wrapper *:focus,
-  .editor-container *:focus,
-  #lexical-editor:focus,
-  .editor-input[contenteditable="true"]:focus {
-    outline: 0 !important;
-    outline-color: transparent !important;
-    box-shadow: none !important;
-    -webkit-box-shadow: none !important;
-    border-color: transparent !important;
-  }
-
-  /* 선택 영역 색상(문서 느낌) */
-  .editor-input ::selection {
-    background: rgba(102, 126, 234, 0.12);
+    &:focus {
+      outline: none;
+    }
   }
 
   .editor-placeholder {
     position: absolute;
-    top: 24px;
-    left: 24px;
+    top: 108px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 1200px;
+    width: 100%;
+    padding-left: 80px;
     color: #adb5bd;
     pointer-events: none;
     font-size: 16px;
+    box-sizing: border-box;
   }
 
   .editor-paragraph {
-    margin: 0 0 12px 0;
+    margin: 0 0 16px 0;
+    line-height: 1.7;
   }
 
   .editor-heading-h1 {
-    font-size: 2em;
+    font-size: 2.2em;
     font-weight: 700;
-    margin: 24px 0 16px 0;
+    margin: 32px 0 16px 0;
     color: #212529;
+    line-height: 1.3;
   }
 
   .editor-heading-h2 {
-    font-size: 1.5em;
+    font-size: 1.75em;
     font-weight: 600;
-    margin: 20px 0 12px 0;
+    margin: 28px 0 14px 0;
     color: #212529;
+    line-height: 1.4;
   }
 
   .editor-heading-h3 {
-    font-size: 1.25em;
+    font-size: 1.4em;
     font-weight: 600;
-    margin: 16px 0 12px 0;
+    margin: 24px 0 12px 0;
     color: #212529;
+    line-height: 1.4;
   }
 
   .editor-quote {
-    margin: 16px 0;
-    padding-left: 16px;
-    border-left: 4px solid #667eea;
-    color: #495057;
+    margin: 20px 0;
+    padding-left: 20px;
+    border-left: 3px solid #dee2e6;
+    color: #6c757d;
     font-style: italic;
   }
 
   .editor-code {
     background: #f8f9fa;
     padding: 16px;
-    border-radius: 6px;
+    border-radius: 4px;
     font-family: "Courier New", monospace;
     font-size: 14px;
     margin: 16px 0;
     overflow-x: auto;
+    border: 1px solid #e9ecef;
   }
 
   .editor-list-ol,
@@ -218,40 +380,34 @@ export const EditorContainer = styled.div`
   }
 
   .editor-listitem {
-    margin: 4px 0;
-  }
-
-  .editor-checklist {
-    list-style: none;
-    padding-left: 24px;
+    margin: 6px 0;
+    line-height: 1.7;
   }
 
   .editor-link {
-    color: #667eea;
+    color: #1971c2;
     text-decoration: none;
-    border-bottom: 1px solid #667eea;
+    border-bottom: 1px solid #1971c2;
+
+    &:hover {
+      color: #1864ab;
+      border-bottom-color: #1864ab;
+    }
   }
 
-  .editor-link:hover {
-    color: #764ba2;
-    border-bottom-color: #764ba2;
-  }
-
-  /* 외래어(원문) 하이라이트 */
   .__origin_word__ {
-    color: #c92a2a; /* 텍스트 빨간색 */
-    background: rgba(201, 42, 42, 0.06); /* 약한 배경 하이라이트 */
-    padding: 0 4px;
-    border-radius: 4px;
+    color: #c92a2a;
+    background: rgba(201, 42, 42, 0.08);
+    padding: 2px 4px;
+    border-radius: 3px;
     font-weight: 600;
   }
 
-  /* 교정(Refined) 단어 하이라이트 (대비 색상) */
   .__refine_word__ {
-    color: #0b7285; /* 청록 계열 */
-    background: rgba(11, 114, 133, 0.04);
-    padding: 0 4px;
-    border-radius: 4px;
+    color: #0b7285;
+    background: rgba(11, 114, 133, 0.06);
+    padding: 2px 4px;
+    border-radius: 3px;
     font-weight: 600;
   }
 
@@ -271,102 +427,66 @@ export const EditorContainer = styled.div`
     text-decoration: line-through;
   }
 
-  .editor-text-code {
-    background: #f8f9fa;
-    padding: 2px 6px;
+  .foreign-word-highlight {
+    background-color: #fff5f5;
+    border-bottom: 2px solid #ff6b6b;
+    cursor: pointer;
+    padding: 2px 4px;
     border-radius: 3px;
-    font-family: "Courier New", monospace;
-    font-size: 0.9em;
-  }
+    transition: all 0.2s ease;
 
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    margin: 16px 0;
-  }
-
-  table td,
-  table th {
-    border: 1px solid #dee2e6;
-    padding: 8px 12px;
-    text-align: left;
-  }
-
-  table th {
-    background: #f8f9fa;
-    font-weight: 600;
-  }
-
-  hr {
-    border: none;
-    border-top: 2px solid #e9ecef;
-    margin: 24px 0;
-  }
-
-  /* 에디터 내부에 렌더링되는 iframe 프리뷰 스타일 */
-  .iframe-preview {
-    padding: 12px 16px;
-    border-top: 1px solid #e9ecef;
-    background: #fafbfd;
-    display: block;
-    margin: 12px auto 0 auto;
-    width: 100%;
-    box-sizing: border-box;
-    border-radius: 8px;
-  }
-
-  .iframe-preview iframe {
-    width: 100%;
-    max-width: 960px;
-    height: 360px;
-    border: none;
-    border-radius: 8px;
-    display: block;
-    margin: 0 auto;
+    &:hover {
+      background-color: #ffe3e3;
+      border-bottom-color: #ff4444;
+    }
   }
 `;
 
-/* 프리뷰 영역 */
+export const RightSidebar = styled.aside`
+  width: 280px;
+  background: white;
+  border-left: 1px solid #e9ecef;
+  overflow-y: auto;
+
+  .sidebar-section {
+    padding: 16px;
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+    margin: 0 0 12px 0;
+  }
+`;
+
+export const EditorFocusReset = createGlobalStyle`
+  * {
+    outline: none !important;
+  }
+
+  .editor-wrapper *:focus,
+  .editor-container *:focus,
+  .editor-input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+`;
+
 export const IframePreview = styled.div`
-  padding: 16px 24px 32px 24px;
+  padding: 24px;
   border-top: 1px solid #e9ecef;
-  background: #fafbfd;
+  background: #f8f8f8;
   display: flex;
-  justify-content: center; /* 가운데 정렬 */
+  justify-content: center;
   align-items: center;
 
   iframe {
     width: 100%;
-    min-width: 960px;
-    height: 360px;
+    max-width: 720px;
+    height: 405px;
     border: none;
-    border-radius: 8px;
-    display: block;
-    margin: 0 auto;
-  }
-`;
-
-/*
-  전역 포커스 리셋: 브라우저가 강제로 그리는 파란 포커스 링을 제거합니다.
-  주의: 접근성(키보드 네비게이션) 영향을 줄 수 있으므로 대체 시각 표시를 권장합니다.
-*/
-export const EditorFocusReset = createGlobalStyle`
-  /* 타겟을 에디터 래퍼로 한정하여 전역 영향 최소화 */
-  .editor-wrapper :is(*, *::before, *::after):focus,
-  .editor-wrapper :is(*, *::before, *::after):focus-visible,
-  .editor-wrapper :is(*, *::before, *::after):focus-within {
-    outline: none !important;
-    outline-color: transparent !important;
-    box-shadow: none !important;
-    -webkit-box-shadow: none !important;
-    border-color: transparent !important;
-  }
-
-  /* 추가 안전망: id로 직접 참조되는 경우도 덮어쓰기 */
-  #lexical-editor:focus,
-  #lexical-editor:focus-visible,
-  #lexical-editor:focus-within {
-    outline: none !important;
-    box-shadow: none !important;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 `;
