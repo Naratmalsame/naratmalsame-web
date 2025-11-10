@@ -27,7 +27,7 @@ const Icon = ({ label }: { label: string }) => (
   <span style={{ fontWeight: "bold", fontSize: 16 }}>{label}</span>
 );
 
-export default function AdvancedToolbar(): JSX.Element {
+export default function AdvancedToolbar(): React.ReactElement {
   const [editor] = useLexicalComposerContext();
 
   const formatText = (format: TextFormatType) => {
