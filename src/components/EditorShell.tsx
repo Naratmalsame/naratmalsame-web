@@ -10,10 +10,12 @@ import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin";
 import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
 import { HorizontalRulePlugin } from "@lexical/react/LexicalHorizontalRulePlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
-import AdvancedToolbar from "./AdvancedToolbar";
+import { Toolbar } from "../Toolbar";
 import AutoLinkPlugin from "./AutoLinkPlugin";
-import ForeignWordPlugin from "../plugins/ForeignWordPlugin";
+import SentenceBasedForeignWordPlugin from "../plugins/SentenceBasedForeignWordPlugin";
 import ForeignWordSidebar from "./ForeignWordSidebar";
+import * as S from "../styles/AppStyles";
+
 import type { EditorState } from "lexical";
 import type { InitialConfigType } from "@lexical/react/LexicalComposer";
 
@@ -26,9 +28,11 @@ export default function EditorShell({
 }): React.ReactElement {
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="editor-wrapper">
-        <AdvancedToolbar />
-        <div className="editor-container">
+      <S.Toolbar>
+        <Toolbar />
+      </S.Toolbar>
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <S.EditorContainer>
           <RichTextPlugin
             contentEditable={
               <ContentEditable className="editor-input" id="lexical-editor" />
@@ -46,9 +50,8 @@ export default function EditorShell({
           <TablePlugin />
           <HorizontalRulePlugin />
           <TabIndentationPlugin />
-          <ForeignWordPlugin />
-        </div>
-        {/* 오른쪽 사이드바: 외래어 목록 및 교체 UI */}
+          <SentenceBasedForeignWordPlugin />
+        </S.EditorContainer>
         <ForeignWordSidebar />
       </div>
     </LexicalComposer>
