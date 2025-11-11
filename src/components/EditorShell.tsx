@@ -10,10 +10,11 @@ import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin";
 import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
 import { HorizontalRulePlugin } from "@lexical/react/LexicalHorizontalRulePlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
-import { Toolbar } from "../Toolbar";
+import ToolbarNew from "../ToolbarNew";
 import AutoLinkPlugin from "./AutoLinkPlugin";
 import SentenceBasedForeignWordPlugin from "../plugins/SentenceBasedForeignWordPlugin";
 import ForeignWordSidebar from "./ForeignWordSidebar";
+import MenuBar from "./MenuBar";
 import * as S from "../styles/AppStyles";
 
 import type { EditorState } from "lexical";
@@ -28,8 +29,9 @@ export default function EditorShell({
 }): React.ReactElement {
   return (
     <LexicalComposer initialConfig={initialConfig}>
+      <MenuBar />
       <S.Toolbar>
-        <Toolbar />
+        <ToolbarNew />
       </S.Toolbar>
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <S.EditorContainer>
