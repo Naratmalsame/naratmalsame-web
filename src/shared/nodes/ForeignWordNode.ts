@@ -75,11 +75,6 @@ export class ForeignWordNode extends TextNode {
 
   createDOM(config: EditorConfig): HTMLElement {
     const element = super.createDOM(config);
-    element.style.backgroundColor = "#ffe6e6";
-    element.style.borderBottom = "2px solid #ff4444";
-    element.style.cursor = "pointer";
-    element.style.padding = "2px 4px";
-    element.style.borderRadius = "3px";
     element.className = "foreign-word-highlight";
     element.setAttribute("data-replacement", this.__replacement);
     element.setAttribute("data-lexical-node-key", this.__key);

@@ -375,8 +375,6 @@ export const EditorContainer = styled.div`
   .__origin_word__ {
     color: #c92a2a;
     background: rgba(201, 42, 42, 0.08);
-    padding: 2px 4px;
-    border-radius: 3px;
     font-weight: 600;
   }
 
@@ -405,16 +403,18 @@ export const EditorContainer = styled.div`
   }
 
   .foreign-word-highlight {
-    background-color: #fff5f5;
-    border-bottom: 2px solid #ff6b6b;
-    cursor: pointer;
-    padding: 2px 4px;
-    border-radius: 3px;
-    transition: all 0.2s ease;
+    background-color: #ffd8d8 !important;
+    cursor: pointer !important;
+    display: inline !important;
+    text-decoration: none !important;
+    box-shadow: inset 0 -2px 0 0 #ff6b6b !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
 
     &:hover {
-      background-color: #ffe3e3;
-      border-bottom-color: #ff4444;
+      background-color: #ffe3e3 !important;
+      box-shadow: inset 0 -2px 0 0 #ff4444 !important;
     }
   }
 `;
