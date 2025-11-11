@@ -14,6 +14,19 @@ export const AppHeader = styled.header`
   background: white;
   border-bottom: 1px solid #e9ecef;
   padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  position: relative;
+
+  .header-logo {
+    width: 28px;
+    height: 31px;
+    position: absolute;
+    left: 30px;
+    flex-shrink: 0;
+  }
 
   h1 {
     margin: 0;
@@ -33,42 +46,6 @@ export const EditorLayout = styled.div`
   flex: 1;
   overflow: hidden;
   background: #f8f8f8;
-`;
-
-export const LeftSidebar = styled.aside`
-  width: 280px;
-  background: white;
-  border-right: 1px solid #e9ecef;
-  overflow-y: auto;
-
-  .sidebar-section {
-    padding: 16px;
-    border-bottom: 1px solid #e9ecef;
-  }
-
-  .section-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #495057;
-    margin: 0 0 12px 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    background: #667eea;
-    color: white;
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 600;
-  }
 `;
 
 export const WordItem = styled.div<{ $isSelected?: boolean }>`
