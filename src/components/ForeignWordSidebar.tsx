@@ -3,18 +3,20 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { $getNodeByKey, TextNode } from "lexical";
 import { $isForeignWordNode } from "../shared/nodes/ForeignWordNode";
 import styled from "styled-components";
+import TranslateIcon from "../assets/translate.svg";
 
 type Item = {
   key: string;
   text: string;
   replacement: string;
   category?: string;
+  isReplaced?: boolean;
 };
 
 type TabType = "refine" | "target" | "score";
 
 const SidebarContainer = styled.aside`
-  width: 320px;
+  width: 400px;
   background: #fff;
   border-left: 1px solid #e9ecef;
   display: flex;
@@ -39,6 +41,10 @@ const Tab = styled.button<{ $active: boolean }>`
   cursor: pointer;
   position: relative;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 
   &:hover {
     color: #212529;
@@ -63,13 +69,14 @@ const Badge = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
+  min-width: 22px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
   margin-left: 6px;
   background: #05a569;
   color: white;
-  border-radius: 10px;
+  border-radius: 50%;
   font-size: 11px;
   font-weight: 700;
 `;
@@ -80,78 +87,125 @@ const ContentArea = styled.div`
   padding: 16px;
 `;
 
-const WordCard = styled.div<{ $isExpanded: boolean }>`
+const WordCard = styled.div<{ $isExpanded: boolean; $isReplaced: boolean }>`
   background: #fff;
-  border: 1px solid ${(props) => (props.$isExpanded ? "#d1d5db" : "#f1f3f5")};
+  border: 1px solid
+    ${(props) => {
+      if (props.$isReplaced) return "#D1FAE5";
+      if (props.$isExpanded) return "#E5E7EB";
+      return "#F3F4F6";
+    }};
   border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    border-color: #d1d5db;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-color: ${(props) => (props.$isReplaced ? "#D1FAE5" : "#D1D5DB")};
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
   }
 `;
 
 const CardHeader = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const CategoryLabel = styled.div`
-  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #9ca3af;
-  margin-bottom: 4px;
+  gap: 12px;
+  align-self: stretch;
 `;
 
-const CategoryIcon = styled.div`
-  width: 18px;
-  height: 18px;
-  background: #ff6b6b;
-  border-radius: 4px;
+const CardWordText = styled.div`
+  display: flex;
+  width: 156px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+`;
+const CardLabel = styled.span`
+  color: #afb1c3;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+`;
+
+const CategoryIcon = styled.div<{ $isReplaced?: boolean }>`
+  width: 26px;
+  height: 26px;
+  border-radius: 100px;
+  background-color: #ffdfdf;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  color: white;
-  font-weight: bold;
 `;
 
 const WordText = styled.div`
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  color: #212529;
-  margin-bottom: 2px;
+  color: #1f2937;
+  line-height: 1.5;
+`;
+
+const ReplacementPreview = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+`;
+
+const OriginText = styled.span`
+  color: black;
+  font-weight: 600;
+`;
+
+const StrikeText = styled.span`
+  color: #afb1c3;
+  font-weight: 500;
+  text-decoration-line: line-through;
+`;
+
+const Arrow = styled.span`
+  color: black;
+  font-size: 18px;
+  font-weight: 600;
+`;
+
+const ReplacementText = styled.span`
+  color: #10b981;
+  font-weight: 800;
 `;
 
 const ExpandedContent = styled.div`
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #f1f3f5;
-`;
-
-const SuggestionRow = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+  gap: 12px;
 `;
 
-const SuggestionLabel = styled.div`
-  font-size: 13px;
-  color: #6c757d;
+const VerticalLine = styled.div`
+  stroke-width: 4px;
+  stroke: var(--border-color, #e2e2e2);
+  width: 0;
+  height: 128px;
+  border-left: 4px solid var(--border-color, #e2e2e2);
+  border-radius: 4px;
 `;
 
-const SuggestionWord = styled.div`
-  font-size: 14px;
+const ContentWrapper = styled.div`
+  flex: 1;
+`;
+
+const ExampleSentence = styled.div`
+  display: flex;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #f8fbfc;
+  color: black;
+  gap: 4px;
+  margin-bottom: 10px;
+  margin-top: 10px;
+`;
+
+const ExampleHighlight = styled.span`
   font-weight: 600;
-  color: #05a569;
 `;
 
 const ActionButtons = styled.div`
@@ -160,20 +214,25 @@ const ActionButtons = styled.div`
 `;
 
 const ActionButton = styled.button<{ $primary?: boolean }>`
-  flex: 1;
-  padding: 8px 16px;
-  border: 1px solid ${(props) => (props.$primary ? "#05A569" : "#d1d5db")};
+  display: flex;
+  padding: 4px 8px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid ${(props) => (props.$primary ? "#10B981" : "#E5E7EB")};
   border-radius: 6px;
-  background: ${(props) => (props.$primary ? "#05A569" : "#fff")};
-  color: ${(props) => (props.$primary ? "#fff" : "#6c757d")};
-  font-size: 13px;
-  font-weight: 500;
+  background: ${(props) => (props.$primary ? "#10B981" : "#fff")};
+  color: ${(props) => (props.$primary ? "#fff" : "#6B7280")};
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 19.2px; /* 160% */
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: ${(props) => (props.$primary ? "#048a57" : "#f9fafb")};
-    border-color: ${(props) => (props.$primary ? "#048a57" : "#9ca3af")};
+    background: ${(props) => (props.$primary ? "#059669" : "#F9FAFB")};
+    border-color: ${(props) => (props.$primary ? "#059669" : "#D1D5DB")};
   }
 `;
 
@@ -183,20 +242,13 @@ const EmptyState = styled.div`
   color: #9ca3af;
   font-size: 14px;
 `;
-const DeleteText = styled.span`
-  color: #afb1c3;
-  font-size: 16px;
-  font-style: normal;
-  font-weight: 500;
-  line-height: normal;
-  text-decoration-line: line-through;
-`;
 
 export default function ForeignWordSidebar(): React.ReactElement {
   const [editor] = useLexicalComposerContext();
   const [items, setItems] = useState<Item[]>([]);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("refine");
+  const [replacedKeys, setReplacedKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const updateListFromDOM = () => {
@@ -243,6 +295,7 @@ export default function ForeignWordSidebar(): React.ReactElement {
         node.replace(textNode);
       }
     });
+    setReplacedKeys((prev) => new Set(prev).add(key));
     setExpandedKey(null);
   };
 
@@ -260,7 +313,7 @@ export default function ForeignWordSidebar(): React.ReactElement {
           다듬을 단어
           {items.length > 0 && <Badge>{items.length}</Badge>}
         </Tab>
-        {/* <Tab
+        <Tab
           $active={activeTab === "target"}
           onClick={() => setActiveTab("target")}
         >
@@ -271,8 +324,7 @@ export default function ForeignWordSidebar(): React.ReactElement {
           onClick={() => setActiveTab("score")}
         >
           종합 점수
-          <Badge>40</Badge>
-        </Tab> */}
+        </Tab>
       </TabBar>
 
       <ContentArea>
@@ -281,49 +333,81 @@ export default function ForeignWordSidebar(): React.ReactElement {
             {items.length === 0 ? (
               <EmptyState>검출된 외래어가 없습니다.</EmptyState>
             ) : (
-              items.map((item) => (
-                <WordCard
-                  key={item.key}
-                  $isExpanded={expandedKey === item.key}
-                  onClick={() =>
-                    setExpandedKey((k) => (k === item.key ? null : item.key))
-                  }
-                >
-                  <CardHeader>
-                    <CategoryLabel>
-                      <CategoryIcon>가</CategoryIcon>
-                      {item.category || "블로그의 외래어 사용"}
-                    </CategoryLabel>
-                    <WordText>{item.text}</WordText>
-                  </CardHeader>
+              items.map((item) => {
+                const isReplaced = replacedKeys.has(item.key);
+                const isExpanded = expandedKey === item.key;
 
-                  {expandedKey === item.key && (
-                    <ExpandedContent onClick={(e) => e.stopPropagation()}>
-                      <SuggestionRow>
-                        <SuggestionLabel>나는 이 일을</SuggestionLabel>
-                        <SuggestionWord>
-                          <DeleteText>{item.text}</DeleteText>{" "}
-                          {item.replacement}
-                        </SuggestionWord>
-                        <SuggestionLabel>수 있어</SuggestionLabel>
-                      </SuggestionRow>
-                      <ActionButtons>
-                        <ActionButton onClick={handleSkip}>
-                          거부하기
-                        </ActionButton>
-                        <ActionButton
-                          $primary
-                          onClick={() =>
-                            handleReplace(item.key, item.replacement)
-                          }
-                        >
-                          다듬기
-                        </ActionButton>
-                      </ActionButtons>
-                    </ExpandedContent>
-                  )}
-                </WordCard>
-              ))
+                return (
+                  <WordCard
+                    key={item.key}
+                    $isExpanded={isExpanded}
+                    $isReplaced={isReplaced}
+                    onClick={() =>
+                      !isReplaced &&
+                      setExpandedKey((k) => (k === item.key ? null : item.key))
+                    }
+                  >
+                    {!isExpanded && (
+                      <CardHeader>
+                        <CategoryIcon $isReplaced={isReplaced}>
+                          <img src={TranslateIcon} alt="외래어 아이콘" />
+                        </CategoryIcon>
+                        <CardWordText>
+                          <CardLabel>불필요한 외래어 사용</CardLabel>
+                          <WordText>{item.text}</WordText>
+                        </CardWordText>
+                      </CardHeader>
+                    )}
+
+                    {isExpanded && !isReplaced && (
+                      <ExpandedContent onClick={(e) => e.stopPropagation()}>
+                        <VerticalLine />
+                        <ContentWrapper>
+                          <CardHeader>
+                            <CategoryIcon $isReplaced={isReplaced}>
+                              <img src={TranslateIcon} alt="외래어 아이콘" />
+                            </CategoryIcon>
+                            <CardWordText>
+                              <CardLabel>외래어 직역 표현</CardLabel>
+                              <ReplacementPreview>
+                                <OriginText>{item.text}</OriginText>
+                                <Arrow>→</Arrow>
+                                <ReplacementText>
+                                  {item.replacement}
+                                </ReplacementText>
+                              </ReplacementPreview>
+                            </CardWordText>
+                          </CardHeader>
+                          <ExampleSentence>
+                            나는 이 일을{" "}
+                            <ExampleHighlight>
+                              <StrikeText>{item.text}</StrikeText>{" "}
+                              <ReplacementText>
+                                {item.replacement}
+                              </ReplacementText>
+                            </ExampleHighlight>
+                            할 수 있어
+                          </ExampleSentence>
+
+                          <ActionButtons>
+                            <ActionButton
+                              $primary
+                              onClick={() =>
+                                handleReplace(item.key, item.replacement)
+                              }
+                            >
+                              다듬기
+                            </ActionButton>
+                            <ActionButton onClick={handleSkip}>
+                              거절하기
+                            </ActionButton>
+                          </ActionButtons>
+                        </ContentWrapper>
+                      </ExpandedContent>
+                    )}
+                  </WordCard>
+                );
+              })
             )}
           </>
         )}
