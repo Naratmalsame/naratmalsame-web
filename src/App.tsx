@@ -4,6 +4,7 @@ import { $getRoot } from "lexical";
 import EditorShell from "./components/EditorShell";
 import PreviewComponent from "./components/Preview";
 import * as S from "./styles/AppStyles";
+import LogoImage from "./assets/logo.svg";
 
 /**
  * 아래에서 사용하는 Lexical 노드들을 명시적으로 import 합니다.
@@ -201,6 +202,7 @@ export default function App() {
       {/* 전역 포커스 리셋을 앱 루트에 렌더하여 에디터 내부의 파란 포커스 링을 제거 */}
       <S.EditorFocusReset />
       <S.AppHeader>
+        <img src={LogoImage} alt="나랏말싸미 로고" className="header-logo" />
         <h1>나랏말싸미 - 인공지능의 발전과 사회적 영향</h1>
         <p>Lexical Editor 문서 작성</p>
       </S.AppHeader>
