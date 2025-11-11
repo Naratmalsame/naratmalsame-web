@@ -78,18 +78,28 @@ export default function SentenceBasedForeignWordPlugin(): null {
           end: i + 1,
           isComplete: true, // 종결 표현이 있는 완성된 문장
         });
-        currentStart = i + 1;
+
+        // 종결 표현 다음의 공백 문자들을 건너뛰기
+        let nextStart = i + 1;
+        while (nextStart < text.length && /\s/.test(text[nextStart])) {
+          nextStart++;
+        }
+        currentStart = nextStart;
       }
     }
 
     // 마지막 문장이 종결 표현 없이 끝나는 경우 (작성 중인 문장도 포함)
     if (currentStart < text.length) {
-      sentences.push({
-        text: text.slice(currentStart),
-        start: currentStart,
-        end: text.length,
-        isComplete: false, // 아직 작성 중인 문장
-      });
+      const remainingText = text.slice(currentStart);
+      // 공백만 있는 경우는 문장으로 처리하지 않음
+      if (remainingText.trim().length > 0) {
+        sentences.push({
+          text: remainingText,
+          start: currentStart,
+          end: text.length,
+          isComplete: false, // 아직 작성 중인 문장
+        });
+      }
     }
 
     return sentences;
@@ -117,36 +127,47 @@ export default function SentenceBasedForeignWordPlugin(): null {
         return [];
       }
 
-      // 각 외래어마다 다른 지연 시간 설정 (500ms ~ 2000ms)
-      const delayedMatches = filteredMatches.map((match, index) => {
+      // 각 외래어마다 다른 지연 시간 설정하고 Promise 생성
+      const pending = new Set<Promise<{ match: ForeignWordMatch }>>();
+
+      filteredMatches.forEach((match, index) => {
         const delay = 500 + index * 300 + Math.random() * 500;
 
-        return new Promise<ForeignWordMatch>((resolve) => {
+        const p = new Promise<{ match: ForeignWordMatch }>((resolve) => {
           const timeoutId = window.setTimeout(() => {
             resolve({
-              ...match,
-              delay,
+              match: {
+                ...match,
+                delay,
+              },
             });
           }, delay);
 
           // timeout 추적
-          processingTimeoutsRef.current.set(sentenceId, timeoutId);
+          processingTimeoutsRef.current.set(
+            `${sentenceId}-${index}`,
+            timeoutId
+          );
         });
+
+        pending.add(p);
       });
 
-      // Promise.race를 사용하여 가장 빨리 완료되는 것부터 처리
       const results: ForeignWordMatch[] = [];
-      const pending = [...delayedMatches];
 
-      while (pending.length > 0) {
-        const fastest = await Promise.race(pending);
-        results.push(fastest);
+      // Promise.race를 사용하여 완료되는 순서대로 처리
+      while (pending.size > 0) {
+        const finished = await Promise.race(pending);
 
-        // 완료된 프로미스를 제거
-        const index = pending.findIndex((p) => p.then((m) => m === fastest));
-        if (index > -1) {
-          pending.splice(index, 1);
+        for (const p of pending) {
+          p.then((data) => {
+            if (data === finished) {
+              pending.delete(p);
+            }
+          });
         }
+
+        results.push(finished.match);
       }
 
       return results;
@@ -190,36 +211,46 @@ export default function SentenceBasedForeignWordPlugin(): null {
 
         processingSentencesRef.current.add(sentenceKey);
 
-        // 문장 범위 내의 텍스트 노드들 찾기
-        const textNodes: TextNode[] = [];
-        let currentOffset = 0;
+        // 문장 범위 내의 텍스트 노드들 찾기 (재귀적으로 순회하며 offset 추적)
+        const textNodesInSentence: Array<{
+          node: TextNode;
+          nodeStart: number;
+          nodeEnd: number;
+        }> = [];
 
-        const collectTextNodes = (node: ElementNode | TextNode) => {
+        const collectTextNodesRecursive = (
+          node: ElementNode | TextNode,
+          offsetAccumulator: { value: number }
+        ) => {
           if ($isTextNode(node)) {
             const nodeText = node.getTextContent();
-            const nodeStart = currentOffset;
-            const nodeEnd = currentOffset + nodeText.length;
+            const nodeStart = offsetAccumulator.value;
+            const nodeEnd = nodeStart + nodeText.length;
 
-            // 이 노드가 현재 문장 범위에 포함되는지 확인
+            // 이 노드가 현재 문장 범위와 겹치는지 확인
             if (nodeEnd > sentence.start && nodeStart < sentence.end) {
-              textNodes.push(node);
+              textNodesInSentence.push({
+                node,
+                nodeStart,
+                nodeEnd,
+              });
             }
 
-            currentOffset = nodeEnd;
+            offsetAccumulator.value = nodeEnd;
           } else if ($isElementNode(node)) {
             const children = node.getChildren();
             children.forEach((child) => {
               if ($isTextNode(child) || $isElementNode(child)) {
-                collectTextNodes(child);
+                collectTextNodesRecursive(child, offsetAccumulator);
               }
             });
           }
         };
 
-        collectTextNodes(paragraphNode);
+        collectTextNodesRecursive(paragraphNode, { value: 0 });
 
         // 각 텍스트 노드에 data-unique 속성 추가
-        textNodes.forEach((node) => {
+        textNodesInSentence.forEach(({ node }) => {
           const dom = (node as TextNode & { __dom?: HTMLElement }).__dom;
           if (dom) {
             dom.setAttribute("data-unique", sentenceId);
@@ -227,10 +258,17 @@ export default function SentenceBasedForeignWordPlugin(): null {
         });
 
         console.log(
-          `[문장 처리 시작] data-unique="${sentenceId}", 텍스트: "${sentence.text.trim()}", 완성여부: ${
-            sentence.isComplete
+          `[문장 처리 시작] data-unique="${sentenceId}", 텍스트: "${sentence.text.trim()}", 범위: [${
+            sentence.start
+          }, ${sentence.end}), 완성여부: ${sentence.isComplete}, 노드 수: ${
+            textNodesInSentence.length
           }`
         );
+        textNodesInSentence.forEach(({ node, nodeStart, nodeEnd }, idx) => {
+          console.log(
+            `  노드 ${idx}: [${nodeStart}, ${nodeEnd}) = "${node.getTextContent()}"`
+          );
+        });
 
         // 비동기로 외래어 탐지 및 처리
         detectForeignWordsWithDelay(sentence.text, sentenceId)
@@ -247,29 +285,24 @@ export default function SentenceBasedForeignWordPlugin(): null {
                 cursorOffset = selection.anchor.offset;
               }
 
-              // 문장 내에서 외래어를 순차적으로 교체
-              const processedNodes = textNodes;
-
               matches.forEach((match) => {
-                // 문장 시작 기준으로 상대적 위치 계산
+                // 문장 시작 기준으로 절대적 위치 계산
                 const absoluteStart = sentence.start + match.start;
                 const absoluteEnd = sentence.start + match.end;
 
-                let currentPos = sentence.start;
+                // 해당 범위에 속하는 노드 찾기
+                for (const {
+                  node,
+                  nodeStart,
+                  nodeEnd,
+                } of textNodesInSentence) {
+                  // 매치가 이 노드 범위 내에 있는지 확인
+                  if (absoluteStart >= nodeStart && absoluteStart < nodeEnd) {
+                    // 노드가 아직 유효한지 확인
+                    try {
+                      const nodeText = node.getTextContent();
 
-                for (let i = 0; i < processedNodes.length; i++) {
-                  const node = processedNodes[i];
-
-                  // 노드가 아직 유효한지 확인
-                  try {
-                    const nodeText = node.getTextContent();
-                    const nodeStart = currentPos;
-                    const nodeEnd = currentPos + nodeText.length;
-
-                    // 매치가 이 노드 범위 내에 있는지 확인
-                    if (absoluteStart >= nodeStart && absoluteStart < nodeEnd) {
                       if ($isForeignWordNode(node)) {
-                        currentPos = nodeEnd;
                         continue;
                       }
 
@@ -359,13 +392,11 @@ export default function SentenceBasedForeignWordPlugin(): null {
                       }
 
                       break;
+                    } catch (error) {
+                      // 노드가 이미 제거되었을 수 있음
+                      console.warn("Node processing error:", error);
+                      break;
                     }
-
-                    currentPos = nodeEnd;
-                  } catch (error) {
-                    // 노드가 이미 제거되었을 수 있음
-                    console.warn("Node processing error:", error);
-                    break;
                   }
                 }
               });
