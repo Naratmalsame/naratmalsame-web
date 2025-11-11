@@ -16,7 +16,7 @@ type Item = {
 type TabType = "refine" | "target" | "score";
 
 const SidebarContainer = styled.aside`
-  width: 400px;
+  min-width: 500px;
   background: #fff;
   border-left: 1px solid #e9ecef;
   display: flex;
@@ -89,22 +89,17 @@ const ContentArea = styled.div`
 
 const WordCard = styled.div<{ $isExpanded: boolean; $isReplaced: boolean }>`
   background: #fff;
-  border: 1px solid
-    ${(props) => {
-      if (props.$isReplaced) return "#D1FAE5";
-      if (props.$isExpanded) return "#E5E7EB";
-      return "#F3F4F6";
-    }};
-  border-radius: 8px;
-  padding: 16px;
+  ${(props) => {
+    if (props.$isReplaced) return "#D1FAE5";
+    if (props.$isExpanded) return "#E5E7EB";
+    return "#F3F4F6";
+  }};
   margin-bottom: 12px;
   cursor: pointer;
   transition: all 0.2s;
-
-  &:hover {
-    border-color: ${(props) => (props.$isReplaced ? "#D1FAE5" : "#D1D5DB")};
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-  }
+  border-bottom: 1px solid #e2e2e2;
+  width: 100%;
+  padding-bottom: 6px;
 `;
 
 const CardHeader = styled.div`
@@ -116,7 +111,7 @@ const CardHeader = styled.div`
 
 const CardWordText = styled.div`
   display: flex;
-  width: 156px;
+  width: 100%;
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
@@ -130,7 +125,7 @@ const CardLabel = styled.span`
 `;
 
 const CategoryIcon = styled.div<{ $isReplaced?: boolean }>`
-  width: 26px;
+  width: 30px;
   height: 26px;
   border-radius: 100px;
   background-color: #ffdfdf;
@@ -151,6 +146,7 @@ const ReplacementPreview = styled.div`
   align-items: center;
   gap: 8px;
   font-size: 15px;
+  width: 100%;
 `;
 
 const OriginText = styled.span`
@@ -184,7 +180,7 @@ const VerticalLine = styled.div`
   stroke-width: 4px;
   stroke: var(--border-color, #e2e2e2);
   width: 0;
-  height: 128px;
+  height: 124px;
   border-left: 4px solid var(--border-color, #e2e2e2);
   border-radius: 4px;
 `;
@@ -198,6 +194,7 @@ const ExampleSentence = styled.div`
   padding: 4px 8px;
   border-radius: 4px;
   background: #f8fbfc;
+  width: 100%;
   color: black;
   gap: 4px;
   margin-bottom: 10px;
