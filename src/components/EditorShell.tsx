@@ -13,6 +13,7 @@ import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin
 import ToolbarNew from "../ToolbarNew";
 import AutoLinkPlugin from "./AutoLinkPlugin";
 import SentenceBasedForeignWordPlugin from "../plugins/SentenceBasedForeignWordPlugin";
+import { ForeignWordTooltipPlugin } from "../plugins/ForeignWordTooltipPlugin";
 import ForeignWordSidebar from "./ForeignWordSidebar";
 import MenuBar from "./MenuBar";
 import * as S from "../styles/AppStyles";
@@ -53,6 +54,7 @@ export default function EditorShell({
           <HorizontalRulePlugin />
           <TabIndentationPlugin />
           <SentenceBasedForeignWordPlugin />
+          <ForeignWordTooltipPlugin />
         </S.EditorContainer>
         <ForeignWordSidebar />
       </div>
