@@ -35,7 +35,6 @@ export const foreignWordsData: ForeignWord[] = [
   { word: "랭킹", replacement: "순위" },
   { word: "챔피언", replacement: "우승자" },
   { word: "토너먼트", replacement: "대회" },
-  { word: "이준호", replacement: "중국사람" },
 ];
 
 // 외래어 검사를 위한 헬퍼 함수
