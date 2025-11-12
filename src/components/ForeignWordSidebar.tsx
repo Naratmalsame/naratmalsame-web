@@ -99,7 +99,7 @@ const WordCard = styled.div<{ $isExpanded: boolean; $isReplaced: boolean }>`
   transition: all 0.2s;
   border-bottom: 1px solid #e2e2e2;
   width: 100%;
-  padding-bottom: 6px;
+  padding-bottom: 10px;
 `;
 
 const CardHeader = styled.div`
@@ -190,11 +190,11 @@ const ContentWrapper = styled.div`
 `;
 
 const ExampleSentence = styled.div`
+  width: fit-content;
   display: flex;
   padding: 4px 8px;
   border-radius: 4px;
   background: #f8fbfc;
-  width: 100%;
   color: black;
   gap: 4px;
   margin-bottom: 10px;
