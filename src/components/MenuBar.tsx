@@ -249,7 +249,7 @@ export default function MenuBar(): React.ReactElement {
             </DropdownItem>
             <Divider />
             <DropdownItem onClick={() => handleMenuItemClick("정보")}>
-              나랏말쌈에 정보
+              나랏말싸미에 문의하기
             </DropdownItem>
           </DropdownMenu>
         )}
