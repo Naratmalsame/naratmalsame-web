@@ -28,7 +28,7 @@ export const analyzeMorpheme = async (
   parsedText: string
 ): Promise<responseType> => {
   const URL = import.meta.env.VITE_ETRI_ADDRESS;
-  const API_KEY = import.meta.env.VITE_ETRI_KEY;
+  // const API_KEY = import.meta.env.VITE_ETRI_KEY;
 
   const morphemeList: morphemeListType[] = [];
   const sentenceList: string[] = [];
@@ -44,7 +44,7 @@ export const analyzeMorpheme = async (
       },
       {
         headers: {
-          Authorization: API_KEY,
+          // Authorization: API_KEY,
           "Content-Type": "application/json",
         },
       }
