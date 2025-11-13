@@ -103,7 +103,7 @@ const tokenDict: Record<string, number> = {
 export const findForeignWord = async (
   parsedText: string
 ): Promise<responseType> => {
-  const model = await tf.loadLayersModel("src/ai/lstm/tsfj/model.json");
+  const model = await tf.loadLayersModel("/ai/lstm/tsfj/model.json");
 
   const { morphemeList, sentenceList } = await analyzeMorpheme(parsedText);
   const foreignWords = new Set<string>();
