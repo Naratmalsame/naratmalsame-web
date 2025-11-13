@@ -16,7 +16,7 @@ import {
   ForeignWordNode,
 } from "../shared/nodes/ForeignWordNode";
 import { foreignWordsData } from "../shared/data/foreignWords";
-import { Trie } from "../shared/utils/Trie";
+import { findForeignWord } from "../ai/lstm/findForeignWord";
 
 // 문장 종결 표현
 const SENTENCE_TERMINATORS = /[.!?]/;
@@ -27,7 +27,6 @@ interface ForeignWordMatch {
   replacement: string;
   start: number;
   end: number;
-  delay: number;
 }
 
 export default function SentenceBasedForeignWordPlugin(): null {
@@ -39,12 +38,13 @@ export default function SentenceBasedForeignWordPlugin(): null {
   const typingTimeoutRef = useRef<number | null>(null);
   const userReplacedWordsRef = useRef<Set<string>>(new Set()); // 사용자가 수동으로 변경한 단어 추적
 
-  const foreignWordTrie = useMemo(() => {
-    const trie = new Trie();
-    foreignWordsData.forEach((fw) => {
-      trie.insert(fw.word, fw.replacement);
+  // 목데이터를 Map으로 변환 (빠른 검색)
+  const replacementMap = useMemo(() => {
+    const map = new Map<string, string>();
+    foreignWordsData.forEach(({ word, replacement }) => {
+      map.set(word.toLowerCase(), replacement);
     });
-    return trie;
+    return map;
   }, []);
 
   // 문장 고유 ID 생성 (data-unique 속성용)
@@ -105,76 +105,6 @@ export default function SentenceBasedForeignWordPlugin(): null {
     return sentences;
   };
 
-  // Promise.race를 사용한 비동기 외래어 탐지
-  const detectForeignWordsWithDelay = useCallback(
-    async (
-      sentenceText: string,
-      sentenceId: string
-    ): Promise<ForeignWordMatch[]> => {
-      const matches = foreignWordTrie.findAllMatches(sentenceText);
-
-      if (matches.length === 0) {
-        return [];
-      }
-
-      // 사용자가 이미 변경한 단어는 제외
-      const filteredMatches = matches.filter((match) => {
-        const wordKey = `${sentenceId}:${match.word}:${match.start}`;
-        return !userReplacedWordsRef.current.has(wordKey);
-      });
-
-      if (filteredMatches.length === 0) {
-        return [];
-      }
-
-      // 각 외래어마다 다른 지연 시간 설정하고 Promise 생성
-      const pending = new Set<Promise<{ match: ForeignWordMatch }>>();
-
-      filteredMatches.forEach((match, index) => {
-        const delay = 500 + index * 300 + Math.random() * 500;
-
-        const p = new Promise<{ match: ForeignWordMatch }>((resolve) => {
-          const timeoutId = window.setTimeout(() => {
-            resolve({
-              match: {
-                ...match,
-                delay,
-              },
-            });
-          }, delay);
-
-          // timeout 추적
-          processingTimeoutsRef.current.set(
-            `${sentenceId}-${index}`,
-            timeoutId
-          );
-        });
-
-        pending.add(p);
-      });
-
-      const results: ForeignWordMatch[] = [];
-
-      // Promise.race를 사용하여 완료되는 순서대로 처리
-      while (pending.size > 0) {
-        const finished = await Promise.race(pending);
-
-        for (const p of pending) {
-          p.then((data) => {
-            if (data === finished) {
-              pending.delete(p);
-            }
-          });
-        }
-
-        results.push(finished.match);
-      }
-
-      return results;
-    },
-    [foreignWordTrie]
-  );
-
   // 문장에 data-unique 속성 추가 및 외래어 처리
   const processSentences = useCallback(
     async (paragraphNode: ElementNode, forceProcess = false) => {
@@ -183,6 +113,23 @@ export default function SentenceBasedForeignWordPlugin(): null {
       if (!fullText) return;
 
       const sentences = splitIntoSentences(fullText);
+
+      // 처리할 문장들만 필터링
+      const sentencesToProcess: Array<{
+        sentence: {
+          text: string;
+          start: number;
+          end: number;
+          isComplete: boolean;
+        };
+        sentenceId: string;
+        sentenceKey: string;
+        textNodesInSentence: Array<{
+          node: TextNode;
+          nodeStart: number;
+          nodeEnd: number;
+        }>;
+      }> = [];
 
       for (const sentence of sentences) {
         // 문장 고유 키 생성 (텍스트로 고유하게 식별)
@@ -258,21 +205,89 @@ export default function SentenceBasedForeignWordPlugin(): null {
         });
 
         console.log(
-          `[문장 처리 시작] data-unique="${sentenceId}", 텍스트: "${sentence.text.trim()}", 범위: [${
+          `[LSTM 문장 준비] data-unique="${sentenceId}", 텍스트: "${sentence.text.trim()}", 범위: [${
             sentence.start
           }, ${sentence.end}), 완성여부: ${sentence.isComplete}, 노드 수: ${
             textNodesInSentence.length
           }`
         );
-        textNodesInSentence.forEach(({ node, nodeStart, nodeEnd }, idx) => {
-          console.log(
-            `  노드 ${idx}: [${nodeStart}, ${nodeEnd}) = "${node.getTextContent()}"`
-          );
-        });
 
-        // 비동기로 외래어 탐지 및 처리
-        detectForeignWordsWithDelay(sentence.text, sentenceId)
-          .then((matches) => {
+        sentencesToProcess.push({
+          sentence,
+          sentenceId,
+          sentenceKey,
+          textNodesInSentence,
+        });
+      }
+
+      if (sentencesToProcess.length === 0) {
+        return;
+      }
+
+      // 전체 텍스트를 한 번에 LSTM으로 전송
+      const fullTextToAnalyze = sentencesToProcess
+        .map((s) => s.sentence.text)
+        .join(" ");
+
+      console.log(
+        `[LSTM API 호출] 전체 텍스트 (${sentencesToProcess.length}개 문장): "${fullTextToAnalyze}"`
+      );
+
+      try {
+        // 전체 텍스트에 대해 한 번만 LSTM 호출
+        const { foreignWords } = await findForeignWord(fullTextToAnalyze);
+
+        if (foreignWords.length === 0) {
+          sentencesToProcess.forEach(({ sentenceKey }) => {
+            processingSentencesRef.current.delete(sentenceKey);
+          });
+          return;
+        }
+
+        console.log(`[LSTM 결과] 발견된 외래어: ${foreignWords.join(", ")}`);
+
+        // 각 문장별로 외래어 매칭 및 처리
+        sentencesToProcess.forEach(
+          ({ sentence, sentenceId, sentenceKey, textNodesInSentence }) => {
+            const matches: ForeignWordMatch[] = [];
+
+            foreignWords.forEach((word) => {
+              const lowerWord = word.toLowerCase();
+              const sentenceText = sentence.text;
+
+              // 문장에서 단어 위치 찾기 (모든 출현 위치)
+              let index = 0;
+              while (index < sentenceText.length) {
+                const foundIndex = sentenceText
+                  .toLowerCase()
+                  .indexOf(lowerWord, index);
+
+                if (foundIndex === -1) break;
+
+                // 사용자가 이미 변경한 단어는 제외
+                const wordKey = `${sentenceId}:${word}:${foundIndex}`;
+                if (!userReplacedWordsRef.current.has(wordKey)) {
+                  // 목데이터에서 replacement 찾기
+                  const replacement = replacementMap.get(lowerWord) || word;
+
+                  matches.push({
+                    word,
+                    replacement,
+                    start: foundIndex,
+                    end: foundIndex + word.length,
+                  });
+                }
+
+                index = foundIndex + word.length;
+              }
+            });
+
+            if (matches.length === 0) {
+              processingSentencesRef.current.delete(sentenceKey);
+              return;
+            }
+
+            // 에디터 업데이트
             editor.update(() => {
               // 현재 커서 위치 저장
               const selection = $getSelection();
@@ -391,6 +406,10 @@ export default function SentenceBasedForeignWordPlugin(): null {
                         }
                       }
 
+                      console.log(
+                        `[LSTM 하이라이트] "${match.word}" → "${match.replacement}"`
+                      );
+
                       break;
                     } catch (error) {
                       // 노드가 이미 제거되었을 수 있음
@@ -401,14 +420,20 @@ export default function SentenceBasedForeignWordPlugin(): null {
                 }
               });
             });
-          })
-          .finally(() => {
+
             // 처리 완료 후 Set에서 제거
             processingSentencesRef.current.delete(sentenceKey);
-          });
+          }
+        );
+      } catch (error) {
+        console.error("[LSTM 전체 텍스트 처리 오류]", error);
+        // 에러 발생 시 모든 문장 처리 상태 제거
+        sentencesToProcess.forEach(({ sentenceKey }) => {
+          processingSentencesRef.current.delete(sentenceKey);
+        });
       }
     },
-    [editor, detectForeignWordsWithDelay]
+    [editor, replacementMap]
   );
 
   useEffect(() => {
@@ -437,7 +462,7 @@ export default function SentenceBasedForeignWordPlugin(): null {
             checkForSentenceEnding(currentText) &&
             currentText !== lastTextContentRef.current
           ) {
-            console.log("[종결 표현 감지] 즉시 외래어 처리 시작");
+            console.log("[LSTM] 종결 표현 감지 - 즉시 외래어 처리 시작");
 
             // 기존 타이머 취소
             if (typingTimeoutRef.current !== null) {
@@ -464,7 +489,7 @@ export default function SentenceBasedForeignWordPlugin(): null {
 
           // 2초 타이머 시작 (미완성 문장 처리)
           typingTimeoutRef.current = window.setTimeout(() => {
-            console.log("[2초 타이머] 미완성 문장 외래어 처리 시작");
+            console.log("[LSTM] 2초 타이머 - 미완성 문장 외래어 처리 시작");
 
             editorState.read(() => {
               const root = $getRoot();
@@ -496,7 +521,7 @@ export default function SentenceBasedForeignWordPlugin(): null {
       });
       timeoutsMap.clear();
     };
-  }, [editor, foreignWordTrie, processSentences]);
+  }, [editor, processSentences]);
 
   // 외래어 클릭 이벤트 처리
   useEffect(() => {
@@ -534,7 +559,7 @@ export default function SentenceBasedForeignWordPlugin(): null {
                       if (wordIndex !== -1) {
                         const wordKey = `${sentenceId}:${originalText}:${wordIndex}`;
                         userReplacedWordsRef.current.add(wordKey);
-                        console.log(`[사용자 변경 추적] ${wordKey}`);
+                        console.log(`[LSTM 사용자 변경 추적] ${wordKey}`);
                       }
                     });
                   });
