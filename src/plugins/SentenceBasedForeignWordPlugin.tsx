@@ -246,48 +246,79 @@ export default function SentenceBasedForeignWordPlugin(): null {
 
         console.log(`[LSTM 결과] 발견된 외래어: ${foreignWords.join(", ")}`);
 
-        // 각 문장별로 외래어 매칭 및 처리
-        sentencesToProcess.forEach(
-          ({ sentence, sentenceId, sentenceKey, textNodesInSentence }) => {
-            const matches: ForeignWordMatch[] = [];
+        // 각 문장별로 외래어 매칭 및 Promise.race 처리
+        for (const {
+          sentence,
+          sentenceId,
+          sentenceKey,
+          textNodesInSentence,
+        } of sentencesToProcess) {
+          const matches: ForeignWordMatch[] = [];
 
-            foreignWords.forEach((word) => {
-              const lowerWord = word.toLowerCase();
-              const sentenceText = sentence.text;
+          foreignWords.forEach((word) => {
+            const lowerWord = word.toLowerCase();
+            const sentenceText = sentence.text;
 
-              // 문장에서 단어 위치 찾기 (모든 출현 위치)
-              let index = 0;
-              while (index < sentenceText.length) {
-                const foundIndex = sentenceText
-                  .toLowerCase()
-                  .indexOf(lowerWord, index);
+            // 문장에서 단어 위치 찾기 (모든 출현 위치)
+            let index = 0;
+            while (index < sentenceText.length) {
+              const foundIndex = sentenceText
+                .toLowerCase()
+                .indexOf(lowerWord, index);
 
-                if (foundIndex === -1) break;
+              if (foundIndex === -1) break;
 
-                // 사용자가 이미 변경한 단어는 제외
-                const wordKey = `${sentenceId}:${word}:${foundIndex}`;
-                if (!userReplacedWordsRef.current.has(wordKey)) {
-                  // 목데이터에서 replacement 찾기
-                  const replacement = replacementMap.get(lowerWord) || word;
+              // 사용자가 이미 변경한 단어는 제외
+              const wordKey = `${sentenceId}:${word}:${foundIndex}`;
+              if (!userReplacedWordsRef.current.has(wordKey)) {
+                // 목데이터에서 replacement 찾기
+                const replacement = replacementMap.get(lowerWord) || word;
 
-                  matches.push({
-                    word,
-                    replacement,
-                    start: foundIndex,
-                    end: foundIndex + word.length,
-                  });
-                }
-
-                index = foundIndex + word.length;
+                matches.push({
+                  word,
+                  replacement,
+                  start: foundIndex,
+                  end: foundIndex + word.length,
+                });
               }
-            });
 
-            if (matches.length === 0) {
-              processingSentencesRef.current.delete(sentenceKey);
-              return;
+              index = foundIndex + word.length;
+            }
+          });
+
+          if (matches.length === 0) {
+            processingSentencesRef.current.delete(sentenceKey);
+            continue;
+          }
+
+          // Promise.race를 활용한 비동기 처리
+          // 각 외래어마다 다른 지연 시간 적용 (500ms ~ 2000ms)
+          const delayedMatches = matches.map((match, index) => {
+            const delay = 500 + index * 300 + Math.random() * 500;
+            return new Promise<ForeignWordMatch>((resolve) => {
+              setTimeout(() => resolve(match), delay);
+            });
+          });
+
+          // Promise.race로 가장 빨리 완료되는 것부터 처리
+          const pending = [...delayedMatches];
+          const processedMatches: ForeignWordMatch[] = [];
+
+          while (pending.length > 0) {
+            const fastest = await Promise.race(pending);
+            processedMatches.push(fastest);
+
+            // 완료된 Promise를 배열에서 제거
+            const fastestIndex = pending.findIndex(
+              (p) =>
+                p.then === fastest.constructor.prototype.then ||
+                processedMatches[processedMatches.length - 1] === fastest
+            );
+            if (fastestIndex !== -1) {
+              pending.splice(fastestIndex, 1);
             }
 
-            // 에디터 업데이트
+            // 개별 외래어 하이라이팅 처리
             editor.update(() => {
               // 현재 커서 위치 저장
               const selection = $getSelection();
@@ -300,131 +331,125 @@ export default function SentenceBasedForeignWordPlugin(): null {
                 cursorOffset = selection.anchor.offset;
               }
 
-              matches.forEach((match) => {
-                // 문장 시작 기준으로 절대적 위치 계산
-                const absoluteStart = sentence.start + match.start;
-                const absoluteEnd = sentence.start + match.end;
+              // 문장 시작 기준으로 절대적 위치 계산
+              const absoluteStart = sentence.start + fastest.start;
+              const absoluteEnd = sentence.start + fastest.end;
 
-                // 해당 범위에 속하는 노드 찾기
-                for (const {
-                  node,
-                  nodeStart,
-                  nodeEnd,
-                } of textNodesInSentence) {
-                  // 매치가 이 노드 범위 내에 있는지 확인
-                  if (absoluteStart >= nodeStart && absoluteStart < nodeEnd) {
-                    // 노드가 아직 유효한지 확인
-                    try {
-                      const nodeText = node.getTextContent();
+              // 해당 범위에 속하는 노드 찾기
+              for (const { node, nodeStart, nodeEnd } of textNodesInSentence) {
+                // 매치가 이 노드 범위 내에 있는지 확인
+                if (absoluteStart >= nodeStart && absoluteStart < nodeEnd) {
+                  // 노드가 아직 유효한지 확인
+                  try {
+                    const nodeText = node.getTextContent();
 
-                      if ($isForeignWordNode(node)) {
-                        continue;
-                      }
-
-                      // 현재 커서가 이 노드에 있는지 확인
-                      const isNodeWithCursor = cursorNodeKey === node.getKey();
-
-                      const relativeStart = absoluteStart - nodeStart;
-                      const relativeEnd = Math.min(
-                        absoluteEnd - nodeStart,
-                        nodeText.length
-                      );
-
-                      // 노드 분할 및 교체
-                      let targetNode: TextNode = node;
-                      let beforeNode: TextNode | null = null;
-                      let afterNode: TextNode | null = null;
-
-                      // 시작 부분 분할
-                      if (relativeStart > 0) {
-                        const [before, after] =
-                          targetNode.splitText(relativeStart);
-                        beforeNode = before as TextNode;
-                        targetNode = after as TextNode;
-                      }
-
-                      // 끝 부분 분할
-                      const targetText = targetNode.getTextContent();
-                      const matchLength = relativeEnd - relativeStart;
-
-                      if (matchLength < targetText.length) {
-                        const [matchPart, remaining] =
-                          targetNode.splitText(matchLength);
-                        targetNode = matchPart as TextNode;
-                        afterNode = remaining as TextNode;
-                      }
-
-                      // TextNode를 ForeignWordNode로 교체
-                      const foreignWordNode = $createForeignWordNode(
-                        match.word,
-                        match.replacement
-                      );
-
-                      // data-unique 유지
-                      const dom = (
-                        targetNode as TextNode & { __dom?: HTMLElement }
-                      ).__dom;
-                      if (dom) {
-                        const dataUniqueAttr = dom.getAttribute("data-unique");
-                        targetNode.replace(foreignWordNode);
-
-                        const newDom = (
-                          foreignWordNode as ForeignWordNode & {
-                            __dom?: HTMLElement;
-                          }
-                        ).__dom;
-                        if (newDom && dataUniqueAttr) {
-                          newDom.setAttribute("data-unique", dataUniqueAttr);
-                        }
-                      } else {
-                        targetNode.replace(foreignWordNode);
-                      }
-
-                      // 커서 위치 복원
-                      if (isNodeWithCursor && cursorOffset !== null) {
-                        const selection = $getSelection();
-                        if ($isRangeSelection(selection)) {
-                          // 커서가 교체된 노드 앞에 있었으면 beforeNode로
-                          if (cursorOffset <= relativeStart && beforeNode) {
-                            beforeNode.select(cursorOffset, cursorOffset);
-                          }
-                          // 커서가 교체된 노드 뒤에 있었으면 afterNode로
-                          else if (cursorOffset >= relativeEnd && afterNode) {
-                            const newOffset = cursorOffset - relativeEnd;
-                            afterNode.select(newOffset, newOffset);
-                          }
-                          // 커서가 교체된 노드 안에 있었으면 afterNode의 시작으로
-                          else if (afterNode) {
-                            afterNode.select(0, 0);
-                          } else if (beforeNode) {
-                            const beforeText = beforeNode.getTextContent();
-                            beforeNode.select(
-                              beforeText.length,
-                              beforeText.length
-                            );
-                          }
-                        }
-                      }
-
-                      console.log(
-                        `[LSTM 하이라이트] "${match.word}" → "${match.replacement}"`
-                      );
-
-                      break;
-                    } catch (error) {
-                      // 노드가 이미 제거되었을 수 있음
-                      console.warn("Node processing error:", error);
-                      break;
+                    if ($isForeignWordNode(node)) {
+                      continue;
                     }
+
+                    // 현재 커서가 이 노드에 있는지 확인
+                    const isNodeWithCursor = cursorNodeKey === node.getKey();
+
+                    const relativeStart = absoluteStart - nodeStart;
+                    const relativeEnd = Math.min(
+                      absoluteEnd - nodeStart,
+                      nodeText.length
+                    );
+
+                    // 노드 분할 및 교체
+                    let targetNode: TextNode = node;
+                    let beforeNode: TextNode | null = null;
+                    let afterNode: TextNode | null = null;
+
+                    // 시작 부분 분할
+                    if (relativeStart > 0) {
+                      const [before, after] =
+                        targetNode.splitText(relativeStart);
+                      beforeNode = before as TextNode;
+                      targetNode = after as TextNode;
+                    }
+
+                    // 끝 부분 분할
+                    const targetText = targetNode.getTextContent();
+                    const matchLength = relativeEnd - relativeStart;
+
+                    if (matchLength < targetText.length) {
+                      const [matchPart, remaining] =
+                        targetNode.splitText(matchLength);
+                      targetNode = matchPart as TextNode;
+                      afterNode = remaining as TextNode;
+                    }
+
+                    // TextNode를 ForeignWordNode로 교체
+                    const foreignWordNode = $createForeignWordNode(
+                      fastest.word,
+                      fastest.replacement
+                    );
+
+                    // data-unique 유지
+                    const dom = (
+                      targetNode as TextNode & { __dom?: HTMLElement }
+                    ).__dom;
+                    if (dom) {
+                      const dataUniqueAttr = dom.getAttribute("data-unique");
+                      targetNode.replace(foreignWordNode);
+
+                      const newDom = (
+                        foreignWordNode as ForeignWordNode & {
+                          __dom?: HTMLElement;
+                        }
+                      ).__dom;
+                      if (newDom && dataUniqueAttr) {
+                        newDom.setAttribute("data-unique", dataUniqueAttr);
+                      }
+                    } else {
+                      targetNode.replace(foreignWordNode);
+                    }
+
+                    // 커서 위치 복원
+                    if (isNodeWithCursor && cursorOffset !== null) {
+                      const selection = $getSelection();
+                      if ($isRangeSelection(selection)) {
+                        // 커서가 교체된 노드 앞에 있었으면 beforeNode로
+                        if (cursorOffset <= relativeStart && beforeNode) {
+                          beforeNode.select(cursorOffset, cursorOffset);
+                        }
+                        // 커서가 교체된 노드 뒤에 있었으면 afterNode로
+                        else if (cursorOffset >= relativeEnd && afterNode) {
+                          const newOffset = cursorOffset - relativeEnd;
+                          afterNode.select(newOffset, newOffset);
+                        }
+                        // 커서가 교체된 노드 안에 있었으면 afterNode의 시작으로
+                        else if (afterNode) {
+                          afterNode.select(0, 0);
+                        } else if (beforeNode) {
+                          const beforeText = beforeNode.getTextContent();
+                          beforeNode.select(
+                            beforeText.length,
+                            beforeText.length
+                          );
+                        }
+                      }
+                    }
+
+                    console.log(
+                      `[LSTM Promise.race 하이라이트] "${fastest.word}" → "${fastest.replacement}" (${processedMatches.length}/${matches.length})`
+                    );
+
+                    break;
+                  } catch (error) {
+                    // 노드가 이미 제거되었을 수 있음
+                    console.warn("Node processing error:", error);
+                    break;
                   }
                 }
-              });
+              }
             });
-
-            // 처리 완료 후 Set에서 제거
-            processingSentencesRef.current.delete(sentenceKey);
           }
-        );
+
+          // 처리 완료 후 Set에서 제거
+          processingSentencesRef.current.delete(sentenceKey);
+        }
       } catch (error) {
         console.error("[LSTM 전체 텍스트 처리 오류]", error);
         // 에러 발생 시 모든 문장 처리 상태 제거
