@@ -186,7 +186,7 @@ export default function SentenceBasedForeignWordPlugin(): null {
             offsetAccumulator.value = nodeEnd;
           } else if ($isElementNode(node)) {
             const children = node.getChildren();
-            children.forEach((child) => {
+            children.forEach((child: ElementNode | TextNode) => {
               if ($isTextNode(child) || $isElementNode(child)) {
                 collectTextNodesRecursive(child, offsetAccumulator);
               }
@@ -497,7 +497,7 @@ export default function SentenceBasedForeignWordPlugin(): null {
 
             // 즉시 처리
             const children = root.getChildren();
-            children.forEach((child) => {
+            children.forEach((child: ElementNode | TextNode) => {
               if ($isElementNode(child)) {
                 processSentences(child, true); // forceProcess = true
               }
@@ -520,7 +520,7 @@ export default function SentenceBasedForeignWordPlugin(): null {
               const root = $getRoot();
               const children = root.getChildren();
 
-              children.forEach((child) => {
+              children.forEach((child: ElementNode | TextNode) => {
                 if ($isElementNode(child)) {
                   processSentences(child, true); // forceProcess = true
                 }
