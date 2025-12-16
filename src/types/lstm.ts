@@ -2,6 +2,8 @@
  * LSTM 모델 관련 타입 정의
  */
 
+import { TextNode } from "lexical";
+
 export interface MorphemeListItem {
   lemma: string;
   type: string;
@@ -20,7 +22,7 @@ export interface Sentence {
 }
 
 export interface TextNodeInfo {
-  node: any; // TextNode
+  node: TextNode;
   nodeStart: number;
   nodeEnd: number;
 }
