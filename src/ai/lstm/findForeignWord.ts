@@ -2,14 +2,14 @@ import { analyzeMorpheme } from "./analyzeMorpheme";
 import * as Hangul from "hangul-js";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-wasm";
-import type { morphemeListType } from "./analyzeMorpheme";
+import type { MorphemeItem } from "../../types/etri";
 
-interface responseType {
+interface FindForeignWordResult {
   foreignWords: string[];
   sentenceList: string[];
 }
 
-function padSequences(tensor: tf.Tensor) {
+function padSequences(tensor: tf.Tensor): tf.Tensor {
   const padLength = 25 - tensor.shape[0];
   if (padLength > 0) {
     const padValue = tf.zeros([padLength]);
@@ -102,13 +102,13 @@ const tokenDict: Record<string, number> = {
 
 export const findForeignWord = async (
   parsedText: string
-): Promise<responseType> => {
+): Promise<FindForeignWordResult> => {
   const model = await tf.loadLayersModel("src/ai/lstm/tsfj/model.json");
 
   const { morphemeList, sentenceList } = await analyzeMorpheme(parsedText);
   const foreignWords = new Set<string>();
 
-  morphemeList.forEach(({ lemma, type }: morphemeListType) => {
+  morphemeList.forEach(({ lemma, type }: MorphemeItem) => {
     if (type === "SL") {
       foreignWords.add(lemma);
       return;
