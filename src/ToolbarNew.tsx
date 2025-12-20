@@ -1,4 +1,9 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type ReactElement,
+} from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $getSelection,
@@ -9,8 +14,9 @@ import {
   REDO_COMMAND,
   $getRoot,
   $createTextNode,
+  type EditorState,
+  type ElementFormatType,
 } from "lexical";
-import type { ElementFormatType } from "lexical";
 import {
   INSERT_UNORDERED_LIST_COMMAND,
   INSERT_ORDERED_LIST_COMMAND,
@@ -32,7 +38,7 @@ import NumberImage from "./assets/number.svg";
 import LeftDecImage from "./assets/left_dec.svg";
 import IndentDecImage from "./assets/indent_dec.svg";
 
-export default function ToolbarNew() {
+export default function ToolbarNew(): ReactElement {
   const [editor] = useLexicalComposerContext();
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
@@ -40,30 +46,32 @@ export default function ToolbarNew() {
   const [blockType, setBlockType] = useState<string>("paragraph");
 
   useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => {
-      editorState.read(() => {
-        const selection = $getSelection();
-        if ($isRangeSelection(selection)) {
-          setIsBold(selection.hasFormat("bold"));
-          setIsItalic(selection.hasFormat("italic"));
-          setIsUnderline(selection.hasFormat("underline"));
+    return editor.registerUpdateListener(
+      ({ editorState }: { editorState: EditorState }) => {
+        editorState.read(() => {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            setIsBold(selection.hasFormat("bold"));
+            setIsItalic(selection.hasFormat("italic"));
+            setIsUnderline(selection.hasFormat("underline"));
 
-          // 현재 선택된 노드의 블록 타입 감지
-          const anchorNode = selection.anchor.getNode();
-          const element =
-            anchorNode.getKey() === "root"
-              ? anchorNode
-              : anchorNode.getTopLevelElementOrThrow();
+            // 현재 선택된 노드의 블록 타입 감지
+            const anchorNode = selection.anchor.getNode();
+            const element =
+              anchorNode.getKey() === "root"
+                ? anchorNode
+                : anchorNode.getTopLevelElementOrThrow();
 
-          if ($isHeadingNode(element)) {
-            const tag = element.getTag();
-            setBlockType(tag);
-          } else {
-            setBlockType("paragraph");
+            if ($isHeadingNode(element)) {
+              const tag = element.getTag();
+              setBlockType(tag);
+            } else {
+              setBlockType("paragraph");
+            }
           }
-        }
-      });
-    });
+        });
+      }
+    );
   }, [editor]);
 
   const insertHeading = (size: "h1" | "h2" | "h3") => {
@@ -161,7 +169,7 @@ export default function ToolbarNew() {
     >
       <select
         className="toolbar-dropdown"
-        onChange={(e) => {
+        onChange={(e: ChangeEvent<HTMLSelectElement>) => {
           const value = e.target.value;
           if (value === "h1") insertHeading("h1");
           else if (value === "h2") insertHeading("h2");
