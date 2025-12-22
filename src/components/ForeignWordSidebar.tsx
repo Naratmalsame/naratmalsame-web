@@ -4,16 +4,8 @@ import { $getNodeByKey, TextNode } from "lexical";
 import { $isForeignWordNode } from "../shared/nodes/ForeignWordNode";
 import styled from "styled-components";
 import TranslateIcon from "../assets/translate.svg";
-
-type Item = {
-  key: string;
-  text: string;
-  replacement: string;
-  category?: string;
-  isReplaced?: boolean;
-};
-
-type TabType = "refine" | "target" | "score";
+import type { ForeignWordItem } from "../types/foreignWord";
+import type { TabType } from "../types/sidebar";
 
 const SidebarContainer = styled.aside`
   min-width: 500px;
@@ -242,7 +234,7 @@ const EmptyState = styled.div`
 
 export default function ForeignWordSidebar(): React.ReactElement {
   const [editor] = useLexicalComposerContext();
-  const [items, setItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<ForeignWordItem[]>([]);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("refine");
   const [replacedKeys, setReplacedKeys] = useState<Set<string>>(new Set());
@@ -258,7 +250,7 @@ export default function ForeignWordSidebar(): React.ReactElement {
       const nodes = Array.from(
         root.querySelectorAll<HTMLElement>(".foreign-word-highlight")
       );
-      const next: Item[] = nodes.map((el) => ({
+      const next: ForeignWordItem[] = nodes.map((el) => ({
         key: el.getAttribute("data-lexical-node-key") || "",
         text: el.textContent || "",
         replacement: el.getAttribute("data-replacement") || "",
