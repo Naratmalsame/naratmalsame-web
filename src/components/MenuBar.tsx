@@ -78,8 +78,10 @@ const Divider = styled.div`
   margin: 4px 0;
 `;
 
+type MenuType = "file" | "edit" | "view" | "window" | "help";
+
 export default function MenuBar(): React.ReactElement {
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [activeMenu, setActiveMenu] = useState<MenuType | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -98,11 +100,11 @@ export default function MenuBar(): React.ReactElement {
     };
   }, [activeMenu]);
 
-  const handleMenuClick = (menuName: string) => {
+  const handleMenuClick = (menuName: MenuType): void => {
     setActiveMenu(activeMenu === menuName ? null : menuName);
   };
 
-  const handleMenuItemClick = (action: string) => {
+  const handleMenuItemClick = (action: string): void => {
     console.log(`${action} 클릭됨`);
     setActiveMenu(null);
     // 여기에 각 메뉴 아이템의 실제 동작을 구현할 수 있습니다
