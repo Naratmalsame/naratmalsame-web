@@ -1,261 +1,229 @@
-import React, { useState, useRef, useEffect } from "react";
+import { type FC, memo, useCallback } from "react";
 import styled from "styled-components";
+import { useMenuState } from "../hooks/useMenuState";
+import { MENU_ITEMS } from "../constants/menuConfig";
+import {
+  COLORS,
+  SPACING,
+  TYPOGRAPHY,
+  TRANSITIONS,
+  BORDER_RADIUS,
+  Z_INDEX,
+} from "../constants/uiConfig";
+import type { MenuType, MenuItem } from "../types/menu";
+
+// ============================================================================
+// Styled Components
+// ============================================================================
 
 const MenuBarContainer = styled.div`
   display: flex;
   align-items: center;
-  background-color: white;
-  border-bottom: 1px solid #ddd;
-  padding: 4px 8px;
-  font-size: 14px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: ${COLORS.background.lighter};
+  border-bottom: 1px solid ${COLORS.border.light};
+  padding: ${SPACING.xs} ${SPACING.sm};
+  font-size: ${TYPOGRAPHY.fontSize.md};
+  font-family: ${TYPOGRAPHY.fontFamily.system};
   user-select: none;
 `;
 
-const MenuItem = styled.div<{ $isActive?: boolean }>`
+interface MenuItemStyledProps {
+  $isActive: boolean;
+}
+
+const MenuItemStyled = styled.div<MenuItemStyledProps>`
   position: relative;
-  padding: 4px 8px;
-  margin-left: 16px;
+  padding: ${SPACING.xs} ${SPACING.sm};
+  margin-left: ${SPACING.lg};
   cursor: pointer;
-  border-radius: 4px;
-  background-color: ${(props) => (props.$isActive ? "#e0e0e0" : "transparent")};
-  transition: background-color 0.2s;
-  color: black;
+  border-radius: ${BORDER_RADIUS.md};
+  background-color: ${(props) =>
+    props.$isActive ? COLORS.active : "transparent"};
+  transition: background-color ${TRANSITIONS.normal};
+  color: ${COLORS.text.primary};
 
   &:hover {
-    background-color: #e8e8e8;
+    background-color: ${COLORS.hover};
   }
 `;
 
-const DropdownMenu = styled.div`
+const DropdownMenuStyled = styled.div`
   position: absolute;
   top: 100%;
   left: 0;
-  margin-top: 2px;
-  background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  margin-top: ${SPACING.xs};
+  background-color: ${COLORS.background.lighter};
+  border: 1px solid ${COLORS.border.medium};
+  border-radius: ${BORDER_RADIUS.md};
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   min-width: 180px;
-  z-index: 1000;
+  z-index: ${Z_INDEX.dropdown};
 `;
 
-const DropdownItem = styled.div<{ $disabled?: boolean }>`
-  padding: 8px 16px;
+interface DropdownItemStyledProps {
+  $disabled: boolean;
+}
+
+const DropdownItemStyled = styled.div<DropdownItemStyledProps>`
+  padding: ${SPACING.sm} ${SPACING.lg};
   cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
-  color: ${(props) => (props.$disabled ? "#aaa" : "#333")};
+  color: ${(props) =>
+    props.$disabled ? COLORS.text.disabled : COLORS.text.primary};
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: background-color 0.2s;
-  font-size: 12px;
+  transition: background-color ${TRANSITIONS.normal};
+  font-size: ${TYPOGRAPHY.fontSize.xs};
 
   &:hover {
     background-color: ${(props) =>
-      props.$disabled ? "transparent" : "#f0f0f0"};
+      props.$disabled ? "transparent" : COLORS.hover};
   }
 
   &:first-of-type {
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
+    border-top-left-radius: ${BORDER_RADIUS.md};
+    border-top-right-radius: ${BORDER_RADIUS.md};
   }
 
   &:last-of-type {
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
+    border-bottom-left-radius: ${BORDER_RADIUS.md};
+    border-bottom-right-radius: ${BORDER_RADIUS.md};
   }
 `;
 
-const Shortcut = styled.span`
-  color: #888;
-  font-size: 12px;
-  margin-left: 24px;
+const ShortcutStyled = styled.span`
+  color: ${COLORS.text.tertiary};
+  font-size: ${TYPOGRAPHY.fontSize.xs};
+  margin-left: ${SPACING.xl};
+  font-family: ${TYPOGRAPHY.fontFamily.mono};
 `;
 
-const Divider = styled.div`
+const DividerStyled = styled.div`
   height: 1px;
-  background-color: #e0e0e0;
-  margin: 4px 0;
+  background-color: ${COLORS.border.light};
+  margin: ${SPACING.xs} 0;
 `;
 
-type MenuType = "file" | "edit" | "view" | "window" | "help";
+// ============================================================================
+// Sub-components
+// ============================================================================
 
-export default function MenuBar(): React.ReactElement {
-  const [activeMenu, setActiveMenu] = useState<MenuType | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+interface DropdownItemProps {
+  item: MenuItem;
+  onItemClick: (action: string) => void;
+}
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setActiveMenu(null);
-      }
-    };
+const DropdownItem: FC<DropdownItemProps> = memo(({ item, onItemClick }) => {
+  const handleClick = useCallback(() => {
+    onItemClick(item.action);
+  }, [item.action, onItemClick]);
 
-    if (activeMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+  return (
+    <DropdownItemStyled
+      $disabled={item.disabled || false}
+      onClick={handleClick}
+    >
+      <span>{item.label}</span>
+      {item.shortcut && <ShortcutStyled>{item.shortcut}</ShortcutStyled>}
+    </DropdownItemStyled>
+  );
+});
 
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [activeMenu]);
+DropdownItem.displayName = "DropdownItem";
 
-  const handleMenuClick = (menuName: MenuType): void => {
-    setActiveMenu(activeMenu === menuName ? null : menuName);
-  };
+interface DropdownMenuProps {
+  menuType: MenuType;
+  onItemClick: (action: string) => void;
+}
 
-  const handleMenuItemClick = (action: string): void => {
-    console.log(`${action} 클릭됨`);
-    setActiveMenu(null);
-    // 여기에 각 메뉴 아이템의 실제 동작을 구현할 수 있습니다
-  };
+const DropdownMenu: FC<DropdownMenuProps> = memo(
+  ({ menuType, onItemClick }) => {
+    const items = MENU_ITEMS[menuType];
+
+    return (
+      <DropdownMenuStyled>
+        {items.map((section, sectionIndex) => (
+          <div key={sectionIndex}>
+            {section.map((item, itemIndex) => (
+              <DropdownItem
+                key={`${sectionIndex}-${itemIndex}`}
+                item={item}
+                onItemClick={onItemClick}
+              />
+            ))}
+            {sectionIndex < items.length - 1 && <DividerStyled />}
+          </div>
+        ))}
+      </DropdownMenuStyled>
+    );
+  },
+);
+
+DropdownMenu.displayName = "DropdownMenu";
+
+interface MenuItemProps {
+  menuType: MenuType;
+  isActive: boolean;
+  onToggle: (menuType: MenuType) => void;
+  onItemClick: (action: string) => void;
+}
+
+const MenuItem: FC<MenuItemProps> = memo(
+  ({ menuType, isActive, onToggle, onItemClick }) => {
+    const handleClick = useCallback(() => {
+      onToggle(menuType);
+    }, [menuType, onToggle]);
+
+    return (
+      <MenuItemStyled $isActive={isActive} onClick={handleClick}>
+        {menuType.charAt(0).toUpperCase() + menuType.slice(1)}
+        {isActive && (
+          <DropdownMenu menuType={menuType} onItemClick={onItemClick} />
+        )}
+      </MenuItemStyled>
+    );
+  },
+);
+
+MenuItem.displayName = "MenuItem";
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
+interface MenuBarProps {
+  onMenuAction?: (action: string) => void;
+}
+
+const MenuBar: FC<MenuBarProps> = memo(({ onMenuAction }) => {
+  const { activeMenu, menuRef, toggleMenu, closeMenu } = useMenuState();
+
+  const handleMenuItemClick = useCallback(
+    (action: string) => {
+      console.log(`Menu action: ${action}`);
+      onMenuAction?.(action);
+      closeMenu();
+    },
+    [onMenuAction, closeMenu],
+  );
+
+  const menuTypes: MenuType[] = ["file", "edit", "view", "window", "help"];
 
   return (
     <MenuBarContainer ref={menuRef}>
-      <MenuItem
-        $isActive={activeMenu === "file"}
-        onClick={() => handleMenuClick("file")}
-      >
-        파일
-        {activeMenu === "file" && (
-          <DropdownMenu>
-            <DropdownItem onClick={() => handleMenuItemClick("새 문서")}>
-              새 문서
-              <Shortcut>⌘N</Shortcut>
-            </DropdownItem>
-            <DropdownItem onClick={() => handleMenuItemClick("열기")}>
-              열기
-              <Shortcut>⌘O</Shortcut>
-            </DropdownItem>
-            <Divider />
-            <DropdownItem onClick={() => handleMenuItemClick("저장")}>
-              저장
-              <Shortcut>⌘S</Shortcut>
-            </DropdownItem>
-            <DropdownItem
-              onClick={() => handleMenuItemClick("다른 이름으로 저장")}
-            >
-              다른 이름으로 저장
-              <Shortcut>⇧⌘S</Shortcut>
-            </DropdownItem>
-            <Divider />
-            <DropdownItem onClick={() => handleMenuItemClick("인쇄")}>
-              인쇄
-              <Shortcut>⌘P</Shortcut>
-            </DropdownItem>
-          </DropdownMenu>
-        )}
-      </MenuItem>
-
-      <MenuItem
-        $isActive={activeMenu === "edit"}
-        onClick={() => handleMenuClick("edit")}
-      >
-        편집
-        {activeMenu === "edit" && (
-          <DropdownMenu>
-            <DropdownItem onClick={() => handleMenuItemClick("실행 취소")}>
-              실행 취소
-              <Shortcut>⌘Z</Shortcut>
-            </DropdownItem>
-            <DropdownItem onClick={() => handleMenuItemClick("다시 실행")}>
-              다시 실행
-              <Shortcut>⇧⌘Z</Shortcut>
-            </DropdownItem>
-            <Divider />
-            <DropdownItem onClick={() => handleMenuItemClick("잘라내기")}>
-              잘라내기
-              <Shortcut>⌘X</Shortcut>
-            </DropdownItem>
-            <DropdownItem onClick={() => handleMenuItemClick("복사")}>
-              복사
-              <Shortcut>⌘C</Shortcut>
-            </DropdownItem>
-            <DropdownItem onClick={() => handleMenuItemClick("붙여넣기")}>
-              붙여넣기
-              <Shortcut>⌘V</Shortcut>
-            </DropdownItem>
-            <Divider />
-            <DropdownItem onClick={() => handleMenuItemClick("모두 선택")}>
-              모두 선택
-              <Shortcut>⌘A</Shortcut>
-            </DropdownItem>
-          </DropdownMenu>
-        )}
-      </MenuItem>
-
-      <MenuItem
-        $isActive={activeMenu === "view"}
-        onClick={() => handleMenuClick("view")}
-      >
-        보기
-        {activeMenu === "view" && (
-          <DropdownMenu>
-            <DropdownItem onClick={() => handleMenuItemClick("확대")}>
-              확대
-              <Shortcut>⌘+</Shortcut>
-            </DropdownItem>
-            <DropdownItem onClick={() => handleMenuItemClick("축소")}>
-              축소
-              <Shortcut>⌘-</Shortcut>
-            </DropdownItem>
-            <DropdownItem onClick={() => handleMenuItemClick("실제 크기")}>
-              실제 크기
-              <Shortcut>⌘0</Shortcut>
-            </DropdownItem>
-            <Divider />
-            <DropdownItem onClick={() => handleMenuItemClick("전체 화면")}>
-              전체 화면
-              <Shortcut>⌃⌘F</Shortcut>
-            </DropdownItem>
-          </DropdownMenu>
-        )}
-      </MenuItem>
-
-      <MenuItem
-        $isActive={activeMenu === "window"}
-        onClick={() => handleMenuClick("window")}
-      >
-        창
-        {activeMenu === "window" && (
-          <DropdownMenu>
-            <DropdownItem onClick={() => handleMenuItemClick("최소화")}>
-              최소화
-              <Shortcut>⌘M</Shortcut>
-            </DropdownItem>
-            <DropdownItem onClick={() => handleMenuItemClick("확대/축소")}>
-              확대/축소
-            </DropdownItem>
-            <Divider />
-            <DropdownItem
-              onClick={() => handleMenuItemClick("모두 앞으로 가져오기")}
-            >
-              모두 앞으로 가져오기
-            </DropdownItem>
-          </DropdownMenu>
-        )}
-      </MenuItem>
-
-      <MenuItem
-        $isActive={activeMenu === "help"}
-        onClick={() => handleMenuClick("help")}
-      >
-        도움말
-        {activeMenu === "help" && (
-          <DropdownMenu>
-            <DropdownItem onClick={() => handleMenuItemClick("사용 설명서")}>
-              사용 설명서
-            </DropdownItem>
-            <DropdownItem onClick={() => handleMenuItemClick("키보드 단축키")}>
-              키보드 단축키
-            </DropdownItem>
-            <Divider />
-            <DropdownItem onClick={() => handleMenuItemClick("정보")}>
-              나랏말싸미에 문의하기
-            </DropdownItem>
-          </DropdownMenu>
-        )}
-      </MenuItem>
+      {menuTypes.map((menuType) => (
+        <MenuItem
+          key={menuType}
+          menuType={menuType}
+          isActive={activeMenu === menuType}
+          onToggle={toggleMenu}
+          onItemClick={handleMenuItemClick}
+        />
+      ))}
     </MenuBarContainer>
   );
-}
+});
+
+MenuBar.displayName = "MenuBar";
+
+export default MenuBar;

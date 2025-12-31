@@ -4,6 +4,21 @@
 
 import type { Preview } from "../types/editor";
 
+// ============================================================================
+// URL 정규식 및 상수
+// ============================================================================
+
+const URL_REGEX = /https?:\/\/\S+/i;
+const PUNCTUATION_REGEX = /[.,!?;:]+$/g;
+const BRACKET_REGEX = /[)\]]+$/g;
+const QUERY_SEPARATOR_REGEX = /[?&/\s]+/;
+
+const ALLOWED_IFRAME_HOSTS = new Set(["example.com"]);
+
+// ============================================================================
+// URL 정제 및 추출
+// ============================================================================
+
 /**
  * URL 문자열을 정리합니다.
  * - 양쪽 공백 제거
@@ -22,12 +37,24 @@ export function sanitizeUrl(input: string): string {
     sanitized = sanitized.slice(1, -1);
   }
 
-  // 끝의 구두점 제거
-  sanitized = sanitized.replace(/[.,!?;:]+$/g, "");
-  sanitized = sanitized.replace(/[)\]]+$/g, "");
+  // 끝의 구두점과 괄호 제거
+  sanitized = sanitized.replace(PUNCTUATION_REGEX, "");
+  sanitized = sanitized.replace(BRACKET_REGEX, "");
 
   return sanitized;
 }
+
+/**
+ * 텍스트에서 URL을 추출합니다.
+ */
+export function extractUrlFromText(text: string): string | null {
+  const urlMatch = text.match(URL_REGEX);
+  return urlMatch?.[0]?.trim() ?? null;
+}
+
+// ============================================================================
+// 비디오 ID 추출
+// ============================================================================
 
 /**
  * YouTube 동영상 ID를 추출합니다.
@@ -35,12 +62,12 @@ export function sanitizeUrl(input: string): string {
 function extractYouTubeVideoId(url: URL): string | null {
   const host = url.hostname.toLowerCase();
 
-  // youtu.be 짧은 URL 처리
+  // youtu.be 짧은 URL 처리: youtu.be/VIDEOID
   if (host.includes(".be")) {
-    return url.pathname.slice(1);
+    return url.pathname.slice(1).split(QUERY_SEPARATOR_REGEX)[0] || null;
   }
 
-  // 정규 YouTube URL: v 파라미터
+  // 정규 YouTube URL: ?v=VIDEOID
   let videoId = url.searchParams.get("v") || "";
 
   // /embed/VIDEOID 경로 처리
@@ -49,10 +76,7 @@ function extractYouTubeVideoId(url: URL): string | null {
   }
 
   // 남은 쿼리나 구두점 제거
-  videoId = (videoId || "")
-    .split(new RegExp("[?&/\\s]+"))[0]
-    .replace(/[.,)!\]]+$/g, "");
-
+  videoId = (videoId || "").split(QUERY_SEPARATOR_REGEX)[0];
   return videoId || null;
 }
 
@@ -61,10 +85,16 @@ function extractYouTubeVideoId(url: URL): string | null {
  */
 function extractVimeoVideoId(url: URL): string | null {
   const parts = url.pathname.split("/").filter(Boolean);
-  let id = parts[parts.length - 1] || "";
-  id = id.split(new RegExp("[?&/\\s]+"))[0].replace(/[.,)!\]]+$/g, "");
-  return id || null;
+  const id = parts[parts.length - 1];
+
+  if (!id) return null;
+
+  return id.split(QUERY_SEPARATOR_REGEX)[0] || null;
 }
+
+// ============================================================================
+// 미리보기 생성
+// ============================================================================
 
 /**
  * URL로부터 미리보기 정보를 생성합니다.
@@ -98,23 +128,16 @@ export function generatePreview(rawUrl: string): Preview | null {
     }
 
     // 허용된 iframe 호스트
-    const allowedIframeHosts = new Set(["example.com"]);
-    if (allowedIframeHosts.has(host)) {
-      return { type: "iframe", src: rawUrl };
+    if (ALLOWED_IFRAME_HOSTS.has(host)) {
+      return { type: "iframe", src: cleaned };
     }
 
     // 기본 링크
-    return { type: "link", src: rawUrl };
+    return { type: "link", src: cleaned };
   } catch (error) {
-    console.error("[URL Preview Error]", error);
+    if (error instanceof Error) {
+      console.error("[URL Preview Error]:", error.message);
+    }
     return null;
   }
-}
-
-/**
- * 텍스트에서 URL을 추출합니다.
- */
-export function extractUrlFromText(text: string): string | null {
-  const urlMatch = text.match(/https?:\/\/\S+/i);
-  return urlMatch?.[0]?.trim() || null;
 }

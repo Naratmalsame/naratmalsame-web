@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { MorphData, SentenceData, MorphemeItem } from "../types/etri";
+import type { MorphData, SentenceData, MorphemeItem } from "../../types/etri";
 
 export interface MorphemeAnalysisResult {
   morphemeList: MorphemeItem[];
@@ -7,7 +7,7 @@ export interface MorphemeAnalysisResult {
 }
 
 export const analyzeMorpheme = async (
-  parsedText: string
+  parsedText: string,
 ): Promise<MorphemeAnalysisResult> => {
   const URL = import.meta.env.VITE_ETRI_ADDRESS;
   const API_KEY = import.meta.env.VITE_ETRI_KEY;
@@ -29,7 +29,7 @@ export const analyzeMorpheme = async (
           Authorization: API_KEY,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     response.data.return_object.sentence.forEach((sentence: SentenceData) => {

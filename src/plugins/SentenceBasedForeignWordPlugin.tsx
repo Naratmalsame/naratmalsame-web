@@ -17,17 +17,10 @@ import {
 } from "../shared/nodes/ForeignWordNode";
 import { foreignWordsData } from "../shared/data/foreignWords";
 import { findForeignWord } from "../ai/lstm/findForeignWord";
+import type { ForeignWordMatch } from "../types/foreignWord";
 
 // 문장 종결 표현
 const SENTENCE_TERMINATORS = /[.!?]/;
-
-// 외래어 매치 결과
-interface ForeignWordMatch {
-  word: string;
-  replacement: string;
-  start: number;
-  end: number;
-}
 
 export default function SentenceBasedForeignWordPlugin(): null {
   const [editor] = useLexicalComposerContext();
@@ -186,7 +179,7 @@ export default function SentenceBasedForeignWordPlugin(): null {
             offsetAccumulator.value = nodeEnd;
           } else if ($isElementNode(node)) {
             const children = node.getChildren();
-            children.forEach((child: ElementNode | TextNode) => {
+            children.forEach((child) => {
               if ($isTextNode(child) || $isElementNode(child)) {
                 collectTextNodesRecursive(child, offsetAccumulator);
               }
@@ -497,7 +490,7 @@ export default function SentenceBasedForeignWordPlugin(): null {
 
             // 즉시 처리
             const children = root.getChildren();
-            children.forEach((child: ElementNode | TextNode) => {
+            children.forEach((child) => {
               if ($isElementNode(child)) {
                 processSentences(child, true); // forceProcess = true
               }
@@ -520,7 +513,7 @@ export default function SentenceBasedForeignWordPlugin(): null {
               const root = $getRoot();
               const children = root.getChildren();
 
-              children.forEach((child: ElementNode | TextNode) => {
+              children.forEach((child) => {
                 if ($isElementNode(child)) {
                   processSentences(child, true); // forceProcess = true
                 }
